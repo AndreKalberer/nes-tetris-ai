@@ -35,6 +35,19 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual(data['alt_levels'], [[29, 150], [159, 167], [174, 248]])
         self.assertEqual(data['alt_below'], 9)
 
+    def test_holes_launcher_doubles_only_the_tetris_hole_weights(self):
+        script = (TOOLS/'run-score-holes.sh').read_text(encoding='utf-8')
+        self.assertIn('NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0', script)
+        self.assertIn('tetris-playout12-b9-vnet-ff-holes.json', script)
+        self.assertNotIn('lowstack-246-249', script)
+        data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-holes.json').read_text(encoding='utf-8'))
+        wide = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-wide.json').read_text(encoding='utf-8'))
+        doubled = {'holes', 'hole_rows', 'covered'}
+        for name, new, old in zip(data['features'], data['alt_weights'], wide['alt_weights']):
+            self.assertAlmostEqual(new, 2*old if name in doubled else old, msg=name)
+        self.assertEqual({k: v for k, v in data.items() if k not in ('alt_weights', 'scope')},
+                         {k: v for k, v in wide.items() if k not in ('alt_weights', 'scope')})
+
     def test_other_spawn_settings_get_their_own_numba_cache(self):
         probe = ('import numba.core.config as c; from nes_original import sim; '
                  'print(sim.SPAWN_SETTLE, c.CACHE_DIR)')
