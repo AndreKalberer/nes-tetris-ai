@@ -1,3 +1,7 @@
+November 3, 2026 — first input on the spawn frame (score-ff)
+
+New launcher `nes-bot/tools/run-score-ff.sh`: the score-vnet bot with its first input on each piece's spawn frame (`NES_FIRST_FRAME=1`, controller change in `feedback.py`) and the simulator's spawn model to match (`NES_SPAWN_SETTLE=0`), which makes a 9-row tetris stack safe. Sim: 86.1M per lap, 74/75 laps survived (score-vnet 83.5M, 75/75 on the same laps). Verified real games, all at level 255 with 0 target misses: seed 957 85,992,961, seed 15868 86,068,887, seed 24340 85,957,911. Tried and not kept: one settle frame with a 9-row stack (67/75), a 10-row stack with the net (48/50), an extra risk-of-death net penalty (72/75).
+
 October 29, 2026 — learned leaf value (score-vnet)
 
 New launcher `nes-bot/tools/run-score-vnet.sh`: the 80M playout bot plus a small value net (`value-net-v3.npz`, MLP over the board) added at the playout leaves with weight 12, only at levels 176-243 and while the stack is at most 6 rows. Trained on 2.8M simulated 1G boards (`nes-bot/tools/value_net/`). Sim: 82.4M per lap, 98/100 laps survived (80M bot 80.4M, 98/100). Verified real games, all at level 255: seed 957 84,715,592, seed 15868 81,917,158, seed 24340 86,308,391. Without the stack gate the net costs survival (70/75 laps). Tried and not kept: wider tetris levels, a smooth height cost, CEM with playouts in the loop, a StackRabbit surface-rank feature, top 24 playouts, 3-piece playouts, a 9- or 10-row stack.

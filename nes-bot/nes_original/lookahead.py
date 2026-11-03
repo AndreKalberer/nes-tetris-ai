@@ -7,6 +7,7 @@ used to search. A fixed beam preserves deterministic logical decisions.
 import argparse
 import json
 from pathlib import Path
+import os
 import time
 
 import numpy as np
@@ -17,6 +18,8 @@ from nes_original.env import OriginalGame
 from nes_original.feedback import FeedbackController
 from nes_original.progression import after_clear
 from nes_original.scoring import action_scores
+
+SPAWN_SETTLE = int(os.environ.get("NES_SPAWN_SETTLE", "2"))
 
 
 class NextPiece:
@@ -65,7 +68,7 @@ class NextPiece:
             state = Control(orientation=next_pose,das=actions.controls[index].das,soft=0)
             failed = False
             # Conservative projection of native spawn settling, with no input.
-            for _ in range(2):
+            for _ in range(SPAWN_SETTLE):
                 state,failed = control_frame(board,state,0,level)
                 if failed:
                     break
