@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -22,6 +25,20 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual(data['alt_below'], 9)
         self.assertEqual(data['value_net'], 'value-net-v3.npz')
         self.assertEqual(data['value_max_height'], 6)
+
+    def test_other_spawn_settings_get_their_own_numba_cache(self):
+        probe = ('import numba.core.config as c; from nes_original import sim; '
+                 'print(sim.SPAWN_SETTLE, c.CACHE_DIR)')
+        env = {k: v for k, v in os.environ.items() if k != 'NUMBA_CACHE_DIR'}
+        env['PYTHONPATH'] = str(Path(__file__).resolve().parents[1])
+        out = {}
+        for settle in ('0', '2'):
+            env['NES_SPAWN_SETTLE'] = settle
+            out[settle] = subprocess.run([sys.executable, '-c', probe], env=env, check=True,
+                                         capture_output=True, text=True).stdout.split()
+        self.assertEqual(out['0'][0], '0')
+        self.assertTrue(out['0'][1].endswith('settle0'))
+        self.assertEqual(out['2'], ['2'])  # default: numba's own cache location, untouched
 
 
 if __name__ == '__main__':

@@ -9,7 +9,23 @@ game. Use this to compare and tune evaluators cheaply; confirm in the emulator.
 Two weight vectors: "score" mode is used until the score reaches the original
 cap (999999) or the optional switch level, then "survive" mode for good. Each vector weights FEATURES below.
 """
+import os
+from pathlib import Path
+
 import numpy as np
+
+# Neutral active frames before the first input of a future piece (playouts, lookahead).
+# 2 = the original conservative model; the real controller needs 1, or 0 with first_frame.
+SPAWN_SETTLE = int(os.environ.get('NES_SPAWN_SETTLE', 2))
+if SPAWN_SETTLE != 2:
+    # numba bakes this constant into its on-disk cache, which does not notice a changed
+    # environment variable. Give every other setting its own cache folder so the default
+    # cache never holds (or serves) code compiled for another spawn model.
+    _cache = Path(os.environ.get('NUMBA_CACHE_DIR') or Path(__file__).resolve().parents[2]/'.numba-cache')
+    if _cache.name != f'settle{SPAWN_SETTLE}':
+        os.environ['NUMBA_CACHE_DIR'] = str(_cache/f'settle{SPAWN_SETTLE}')
+        import numba.core.config
+        numba.core.config.reload_config()
 from numba import njit, prange
 
 from nes.engine import SPAWN
@@ -34,10 +50,6 @@ SCARE_HEIGHT = 4.
 # Default frames the controller waits after spawn before its first input (v8c: 3). Every
 # enumeration takes the wait as an explicit `reaction` argument; this is only the default.
 REACTION = 3
-# Neutral active frames before the first input of a future piece (playouts, lookahead).
-# 2 = the original conservative model; the real controller needs 1, or 0 with first_frame.
-import os as _os
-SPAWN_SETTLE = int(_os.environ.get('NES_SPAWN_SETTLE', 2))
 SAFE_COL8 = 5
 N_BOARD = len(BOARD_FEATURES)
 N_FEATURES = len(FEATURES)
