@@ -120,9 +120,12 @@ def play(job):
                 holes = int((np.maximum.accumulate(board, axis=0) & ~board).sum())
                 snapshots[t] = (height, holes)
         gravity_level = min(level, 29)
-        # The real controller plans one frame after spawn (piece row 1 in every traced
-        # decision), not after the two settle frames sim.spawn_state uses.
-        state, failed = sim.frame(board, (5, 0, int(current), 0, das, 0, 0, 0), 0, gravity_level)
+        # The default controller plans one frame after spawn (piece row 1 in every traced
+        # decision); the first-frame controller (NES_SPAWN_SETTLE=0) plans on the spawn frame.
+        if sim.SPAWN_SETTLE == 0:
+            state, failed = (5, 0, int(current), 0, das, 0, 0, 0), False
+        else:
+            state, failed = sim.frame(board, (5, 0, int(current), 0, das, 0, 0, 0), 0, gravity_level)
         if failed:
             return end('top_out')
         # Optional: a late plan (over one frame) loses the first input frame for this piece.

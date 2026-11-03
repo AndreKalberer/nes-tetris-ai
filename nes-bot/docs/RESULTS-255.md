@@ -22,6 +22,9 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 | score-vnet (`run-score-vnet.sh`) | 957 | 3,290 | 84,715,592 | 342 |
 | score-vnet (`run-score-vnet.sh`) | 15868 | 3,290 | 81,917,158 | 343 |
 | score-vnet (`run-score-vnet.sh`) | 24340 | 3,291 | 86,308,391 | 358 |
+| score-ff (`run-score-ff.sh`) | 957 | 3,290 | 85,992,961 | 372 |
+| score-ff (`run-score-ff.sh`) | 15868 | 3,290 | 86,068,887 | 359 |
+| score-ff (`run-score-ff.sh`) | 24340 | 3,290 | 85,957,911 | 356 |
 
 All played headless on a Linux cloud machine; the uncapped score matched the real counter at
 every check (0 mismatches). A third score80 game (seed 24340) topped out at level 235 with
@@ -29,6 +32,9 @@ every check (0 mismatches). A third score80 game (seed 24340) topped out at leve
 at the same point.
 The score-vnet bot (learned leaf value, gated) reached level 255 on all three seeds, including
 24340. Simulator: 82.4M per lap with 98/100 laps survived (score80 on the same 100 laps: 80.4M, 98/100).
+The score-ff bot (first input on the spawn frame, 9-row stack) reached level 255 on all three
+seeds with 0 target misses; every piece took the first-frame path. Simulator: 86.1M per lap
+with 74/75 laps survived (score-vnet on the same 75 laps: 83.5M, 75/75).
 
 ## Level 255
 

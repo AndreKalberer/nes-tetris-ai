@@ -335,7 +335,7 @@ def level_after(start_level,lines):
 
 @njit(cache=True)
 def spawn_state(orientation,das,board,level):
-    """Spawn pose plus two neutral settling frames, as nes_original.lookahead does."""
+    """Spawn pose plus SPAWN_SETTLE neutral settling frames, as nes_original.lookahead does."""
     state = (5,0,orientation,0,das,0,0,0)
     for _ in range(SPAWN_SETTLE):
         state,failed = frame(board,state,0,level)
