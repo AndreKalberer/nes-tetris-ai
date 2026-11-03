@@ -25,6 +25,9 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 | score-ff (`run-score-ff.sh`) | 957 | 3,290 | 85,992,961 | 372 |
 | score-ff (`run-score-ff.sh`) | 15868 | 3,290 | 86,068,887 | 359 |
 | score-ff (`run-score-ff.sh`) | 24340 | 3,290 | 85,957,911 | 356 |
+| score-wide (`run-score-wide.sh`) | 957 | 3,291 | 89,517,690 | 374 |
+| score-wide (`run-score-wide.sh`) | 15868 | 3,290 | 90,311,839 | 378 |
+| score-wide (`run-score-wide.sh`) | 24340 | 3,290 | 91,126,229 | 379 |
 
 All played headless on a Linux cloud machine; the uncapped score matched the real counter at
 every check (0 mismatches). A third score80 game (seed 24340) topped out at level 235 with
@@ -35,6 +38,8 @@ The score-vnet bot (learned leaf value, gated) reached level 255 on all three se
 The score-ff bot (first input on the spawn frame, 9-row stack) reached level 255 on all three
 seeds with 0 target misses; every piece took the first-frame path. Simulator: 86.1M per lap
 with 74/75 laps survived (score-vnet on the same 75 laps: 83.5M, 75/75).
+The score-wide bot (tetris mode also at 159-167, 174-175 and 244-248) reached level 255 on all
+three seeds with 0 target misses. Simulator: 89.7M per lap with 75/75 laps survived.
 
 ## Level 255
 

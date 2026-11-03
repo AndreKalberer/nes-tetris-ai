@@ -1,3 +1,7 @@
+November 3, 2026 — tetris mode at more levels (score-wide)
+
+New launcher `nes-bot/tools/run-score-wide.sh`: the score-ff bot with tetris mode also at levels 159-167, 174-175 and 244-248, and without the lowstack 246-249 zone. Sim: 89.7M per lap, 75/75 laps survived (score-ff 86.1M, 74/75 on the same laps). Verified real games, all at level 255 with 0 target misses: seed 957 89,517,690, seed 15868 90,311,839, seed 24340 91,126,229. Tried and not kept: tetris mode at 151-155 (7/50 died), a stronger net (gate 7 or weight 20, within noise or costs survival).
+
 November 3, 2026 — first input on the spawn frame (score-ff)
 
 New launcher `nes-bot/tools/run-score-ff.sh`: the score-vnet bot with its first input on each piece's spawn frame (`NES_FIRST_FRAME=1`, controller change in `feedback.py`) and the simulator's spawn model to match (`NES_SPAWN_SETTLE=0`), which makes a 9-row tetris stack safe. Sim: 86.1M per lap, 74/75 laps survived (score-vnet 83.5M, 75/75 on the same laps). Verified real games, all at level 255 with 0 target misses: seed 957 85,992,961, seed 15868 86,068,887, seed 24340 85,957,911. Tried and not kept: one settle frame with a 9-row stack (67/75), a 10-row stack with the net (48/50), an extra risk-of-death net penalty (72/75).
