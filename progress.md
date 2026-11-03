@@ -1,3 +1,7 @@
+November 3, 2026 — doubled hole weights in tetris mode (score-holes)
+
+New launcher `nes-bot/tools/run-score-holes.sh`: the score-wide bot with the tetris-mode holes, hole_rows and covered weights doubled. 92% of the holes the wide bot made at levels 174-243 had a hole-free option. Sim, 100 paired laps: about 92.0M per lap, 100/100 survived (score-wide 89.6M). Verified real games, all at level 255 with 0 target misses: seed 957 93,973,742, seed 15868 90,516,059, seed 24340 91,604,910 (score-wide 89.5M / 90.3M / 91.1M). Tried and not kept: hole weights x1.5, x2.5 and x3, burn-mode hole weights x2, a 10-row stack at 176-235 (2 extra deaths), a playout penalty for burning a ready tetris (sim +0.9M, but 3 real games below score-wide).
+
 November 3, 2026 — tetris mode at more levels (score-wide)
 
 New launcher `nes-bot/tools/run-score-wide.sh`: the score-ff bot with tetris mode also at levels 159-167, 174-175 and 244-248, and without the lowstack 246-249 zone. Sim: 89.7M per lap, 75/75 laps survived (score-ff 86.1M, 74/75 on the same laps). Verified real games, all at level 255 with 0 target misses: seed 957 89,517,690, seed 15868 90,311,839, seed 24340 91,126,229. Tried and not kept: tetris mode at 151-155 (7/50 died), a stronger net (gate 7 or weight 20, within noise or costs survival).
