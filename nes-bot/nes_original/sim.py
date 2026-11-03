@@ -34,6 +34,10 @@ SCARE_HEIGHT = 4.
 # Default frames the controller waits after spawn before its first input (v8c: 3). Every
 # enumeration takes the wait as an explicit `reaction` argument; this is only the default.
 REACTION = 3
+# Neutral active frames before the first input of a future piece (playouts, lookahead).
+# 2 = the original conservative model; the real controller needs 1, or 0 with first_frame.
+import os as _os
+SPAWN_SETTLE = int(_os.environ.get('NES_SPAWN_SETTLE', 2))
 SAFE_COL8 = 5
 N_BOARD = len(BOARD_FEATURES)
 N_FEATURES = len(FEATURES)
@@ -333,7 +337,7 @@ def level_after(start_level,lines):
 def spawn_state(orientation,das,board,level):
     """Spawn pose plus two neutral settling frames, as nes_original.lookahead does."""
     state = (5,0,orientation,0,das,0,0,0)
-    for _ in range(2):
+    for _ in range(SPAWN_SETTLE):
         state,failed = frame(board,state,0,level)
         if failed:
             return state,True

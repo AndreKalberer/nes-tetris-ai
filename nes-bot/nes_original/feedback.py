@@ -28,8 +28,17 @@ class FeedbackController:
                  no_softdrop_at_1g=False, no_softdrop_levels=(), nonactive_input=0,
                  stall_rescue_input=0, stall_rescue_after=120,
                  stall_rescue_fallback_input=0, stall_rescue_primary_frames=8, reaction_frames=3,
-                 late_plan='replan'):
+                 late_plan='replan', first_frame=None):
         self.fixed_reaction,self.selector = fixed_reaction,selector
+        # first_frame: accept the first active observation of a new piece when it is
+        # unambiguous (spawn pose of the piece the preview showed at lock), so the first
+        # input lands on the first active frame instead of one frame later.
+        if first_frame is None:
+            import os
+            first_frame = os.environ.get('NES_FIRST_FRAME') == '1'
+        self.first_frame = first_frame
+        self.expected_spawn = None
+        self.first_frame_spawns = 0
         # Neutral frames after the first stable active frame before the first input. Planning
         # time beyond max(1, reaction_frames) frames is charged as idle frames (one frame is the
         # normal observe-then-input step).
@@ -335,6 +344,7 @@ class FeedbackController:
             if after.phase != 2:
                 raise AssertionError('Original game left active control without lock phase')
             self.stage = 'entry'
+            self.expected_spawn = before.next_orientation
             if (after.x,after.orientation) != (self.target_x,self.target_orientation):
                 self.target_misses += 1
             if not self._valid_orientation(after.orientation):
@@ -346,7 +356,11 @@ class FeedbackController:
             # consecutive matching active orientations before the next choice.
             self.spawn_orientation = after.orientation
             self.stage = 'settle'
-            return
+            fresh = (after.orientation == self.expected_spawn and after.x == 5 and after.y == 0
+                     and after.fall == 0)
+            if not (self.first_frame and fresh):
+                return
+            self.first_frame_spawns += 1
         if self.stage == 'settle':
             if after.phase == 2:
                 if not self._valid_orientation(after.orientation):
@@ -377,6 +391,7 @@ class FeedbackController:
         return dict(plans=self.plans,planning_seconds=self.planning_seconds,
             planning_overruns=self.overruns,extra_idle_frames=self.extra_idle_frames,
             runtime_latency_charged=not self.fixed_reaction,target_misses=self.target_misses,
+            first_frame=self.first_frame,first_frame_spawns=self.first_frame_spawns,
             proposal_board_differences=self.proposal_board_differences,
             board_audit_failures=self.board_audit_failures,top_boundary_locks=self.top_boundary_locks,
             piece_type_differences=self.piece_type_differences,
