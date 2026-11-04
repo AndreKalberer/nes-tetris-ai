@@ -1,7 +1,7 @@
 #!/bin/sh
 # Play one original-game attempt with the first-frame score bot (the value-net bot with its first input on the
 # piece's spawn frame and a 9-row tetris stack; learned leaf value at levels 176-243, 2-piece playouts, tetris mode
-# at the 1G levels outside the crash zones, plus 159-167, 174-175 and 244-254;
+# at the 1G levels outside the crash zones, plus 159-167, 174-175, 244-248, 250-252 and 254;
 # tetris-mode hole weights doubled) in MesenCE,
 # then fresh-replay verify it.  Usage:
 #   sh nes-bot/tools/run-score-top.sh SEED [TARGET] [PLANNER_MASK EMULATOR_MASK]  (planner wants 3 cores: default 13 = cores 0,2,3)

@@ -10,7 +10,7 @@ NES original-cartridge (level 255) work — see [docs/NES-255.md](../docs/NES-25
 | `run-score-ff.sh SEED [255\|511\|endless]` | The value-net bot with its first input on the spawn frame (`NES_FIRST_FRAME=1`, `NES_SPAWN_SETTLE=0`) and a 9-row tetris stack. Same cores as `run-score80.sh`. |
 | `run-score-wide.sh SEED [255\|511\|endless]` | `run-score-ff.sh` with tetris mode also at levels 159-167, 174-175 and 244-248 (no lowstack 246-249 zone). Same cores as `run-score80.sh`. |
 | `run-score-holes.sh SEED [255\|511\|endless]` | `run-score-wide.sh` with the tetris-mode holes, hole_rows and covered weights doubled. Same cores as `run-score80.sh`. |
-| `run-score-top.sh SEED [255\|511\|endless]` | `run-score-holes.sh` with tetris mode also at levels 249-254 and no Dellacherie 250-254 zone. Same cores as `run-score80.sh`. |
+| `run-score-top.sh SEED [255\|511\|endless]` | `run-score-holes.sh` with tetris mode also at levels 250-252 and 254 and no Dellacherie 250-254 zone. Same cores as `run-score80.sh`. |
 | `value_net/gen.py`, `value_net/train.py` | Simulated 1G trajectories for value-net training, and the trainer that exports the `.npz` net (needs PyTorch). |
 | `run-score50.sh SEED [255\|511\|endless]` | Same as `run255.sh` with the 50M score bot (CEM tetris weights, 3rd-piece expectation, no spawn wait). |
 | `batch255.py` | Run a fixed list of seeds a few at a time with one launcher (status in `batch-status.json`). |

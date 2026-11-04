@@ -48,7 +48,7 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual({k: v for k, v in data.items() if k not in ('alt_weights', 'scope')},
                          {k: v for k, v in wide.items() if k not in ('alt_weights', 'scope')})
 
-    def test_top_launcher_adds_tetris_mode_up_to_254(self):
+    def test_top_launcher_adds_tetris_mode_at_250_252_and_254(self):
         script = (TOOLS/'run-score-top.sh').read_text(encoding='utf-8')
         self.assertIn('NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0', script)
         self.assertIn('tetris-playout12-b9-vnet-ff-top.json', script)
@@ -56,7 +56,7 @@ class FirstFrameTests(unittest.TestCase):
         self.assertIn('168 172 28 2', script)
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-top.json').read_text(encoding='utf-8'))
         holes = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-holes.json').read_text(encoding='utf-8'))
-        self.assertEqual(data['alt_levels'], [[29, 150], [159, 167], [174, 254]])
+        self.assertEqual(data['alt_levels'], [[29, 150], [159, 167], [174, 248], [250, 252], [254, 254]])
         self.assertEqual({k: v for k, v in data.items() if k not in ('alt_levels', 'scope')},
                          {k: v for k, v in holes.items() if k not in ('alt_levels', 'scope')})
 

@@ -31,9 +31,9 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 | score-holes (`run-score-holes.sh`) | 957 | 3,291 | 93,973,742 | 408 |
 | score-holes (`run-score-holes.sh`) | 15868 | 3,290 | 90,516,059 | 386 |
 | score-holes (`run-score-holes.sh`) | 24340 | 3,290 | 91,604,910 | 392 |
-| score-top (`run-score-top.sh`) | 957 | 3,290 | 93,194,645 | 409 |
-| score-top (`run-score-top.sh`) | 15868 | 3,290 | 91,769,104 | 390 |
-| score-top (`run-score-top.sh`) | 24340 | 3,290 | 97,506,462 | 426 |
+| score-top (`run-score-top.sh`) | 957 | 3,290 | 96,306,150 | 419 |
+| score-top (`run-score-top.sh`) | 15868 | 3,290 | 93,717,958 | 402 |
+| score-top (`run-score-top.sh`) | 24340 | 3,292 | 88,316,463 | 373 |
 
 All played headless on a Linux cloud machine; the uncapped score matched the real counter at
 every check (0 mismatches). A third score80 game (seed 24340) topped out at level 235 with
@@ -49,9 +49,9 @@ three seeds with 0 target misses. Simulator: 89.7M per lap with 75/75 laps survi
 The score-holes bot (tetris-mode hole weights doubled) reached level 255 on all three seeds
 with 0 target misses, beating score-wide on each seed. Simulator: about 92.0M per lap with
 100/100 laps survived (score-wide on the same 100 laps: 89.6M).
-The score-top bot (tetris mode also at 249-254) reached level 255 on all three seeds with
-0 target misses, averaging 94.2M (score-holes on the same seeds: 92.0M). Simulator: about
-+2.1M per lap over score-holes across 150 paired laps.
+The score-top bot (tetris mode also at 250-252 and 254) reached level 255 on all three seeds
+with 0 target misses, averaging 92.8M (score-holes on the same seeds: 92.0M). Simulator:
+about +1.45M per lap over score-holes, and 35/40 five-lap games survived (score-holes 32/40).
 
 ## Level 255
 
