@@ -108,9 +108,11 @@ def play(job):
     states = np.zeros((sim.MAX_CANDIDATES, 9), np.int64)
     snapshots = {}
     moves = []
+    late_replans = 0
     def end(result, **extra):
         return dict(seed=seed, result=result, level=level, lines=lines, points=points, snapshots=snapshots,
-                    moves=moves, bands={f'{a}-{b}': v for (a, b), v in zip(BANDS, bands)}, **extra)
+                    moves=moves, bands={f'{a}-{b}': v for (a, b), v in zip(BANDS, bands)},
+                    late_replans=late_replans, **extra)
 
     while (lines < config['stop_lines']) if full else (level < stop_level):
         for t in (1480, 1500, 1510):
@@ -137,30 +139,54 @@ def play(job):
             if filled.any() and 20-int(np.argmax(filled)) > config['late_tall_rows']:
                 p_late = config['late_tall_prob']
         late = p_late > 0 and rng.random() < p_late
-        n = sim.candidates(board, state, gravity_level, 2, states, reaction+1 if late else reaction)
-        boards, cleared, dead, controls, frames = [], [], [], [], []
-        seen = {}
-        for i in range(n):
-            result, c, d = sim.lock(board, int(states[i, 0]), int(states[i, 1]), int(states[i, 2]))
-            # Same candidate list as nes.actions.enumerate_actions: one entry per (board, das,
-            # terminal), first position kept, the shortest button path wins.
-            key = (result.tobytes(), int(states[i, 4]), bool(d))
-            if key in seen:
-                j = seen[key]
-                if int(states[i, 8]) < frames[j]:
-                    controls[j], frames[j] = Control(states[i]), int(states[i, 8])
-                continue
-            seen[key] = len(boards)
-            boards.append(result.astype(np.uint8)); cleared.append(c); dead.append(d); controls.append(Control(states[i]))
-            frames.append(int(states[i, 8]))
-        if all(dead):
+        def build(react):
+            n = sim.candidates(board, state, gravity_level, 2, states, react)
+            boards, cleared, dead, controls, frames = [], [], [], [], []
+            seen = {}
+            for i in range(n):
+                result, c, d = sim.lock(board, int(states[i, 0]), int(states[i, 1]), int(states[i, 2]))
+                # Same candidate list as nes.actions.enumerate_actions: one entry per (board, das,
+                # terminal), first position kept, the shortest button path wins.
+                key = (result.tobytes(), int(states[i, 4]), bool(d))
+                if key in seen:
+                    j = seen[key]
+                    if int(states[i, 8]) < frames[j]:
+                        controls[j], frames[j] = Control(states[i]), int(states[i, 8])
+                    continue
+                seen[key] = len(boards)
+                boards.append(result.astype(np.uint8)); cleared.append(c); dead.append(d)
+                controls.append(Control(states[i])); frames.append(int(states[i, 8]))
+            return boards, cleared, dead, controls, frames
+
+        def choose(lists):
+            boards, cleared, dead, controls, frames = lists
+            actions = SimpleNamespace(boards=boards, lines=np.asarray(cleared), terminal=np.asarray(dead),
+                                      controls=controls)
+            obs = SimpleNamespace(board=board.astype(np.uint8), level=level, lines=lines, score=999999,
+                                  placements=placements, next_orientation=int(upcoming))
+            return prio(obs, SimpleNamespace(actions=actions))
+
+        retarget = late and config.get('late_retarget')
+        lists = build(reaction+1 if late and not retarget else reaction)
+        if all(lists[2]):
             return end('top_out')
-        actions = SimpleNamespace(boards=boards, lines=np.asarray(cleared), terminal=np.asarray(dead), controls=controls)
-        plan = SimpleNamespace(actions=actions)
-        obs = SimpleNamespace(board=board.astype(np.uint8), level=level, lines=lines, score=999999,
-                              placements=placements, next_orientation=int(upcoming))
-        index = prio(obs, plan)
+        index = choose(lists)
         row = prio.last_rows[index]
+        if retarget:
+            # Like --late-plan retarget in the real controller: plan as if on time; the late piece keeps that
+            # board when it is still reachable one frame later, else it chooses again from the late list.
+            target = lists[0][index]
+            lists = build(reaction+1)
+            if all(lists[2]):
+                return end('top_out')
+            same = [i for i, b in enumerate(lists[0]) if np.array_equal(b != 0, target != 0)]
+            if same:
+                index = same[0]
+            else:
+                late_replans += 1
+                index = choose(lists)
+                row = prio.last_rows[index]
+        boards, cleared, dead, controls, frames = lists
         if config.get('record_moves'):
             moves.append(dict(lines=lines, piece=int(current), x=controls[index].x, y=controls[index].y,
                               orientation=controls[index].orientation, cleared=int(cleared[index]), das=int(das),
@@ -236,6 +262,8 @@ def main():
     p.add_argument('--late-tall-prob', type=float, default=None,
                    help='late chance per piece while the stack is taller than --late-tall-rows (default: --late-prob)')
     p.add_argument('--late-tall-rows', type=int, default=9)
+    p.add_argument('--late-retarget', action='store_true',
+                   help='late pieces keep the on-time choice when it is still reachable (real --late-plan retarget)')
     p.add_argument('--output', type=Path)
     args = p.parse_args()
     extra = args.extra_zone if args.extra_zone is not None else [[str(REPO/'runs/lowstack-246-249.json'), '246', '249']]
@@ -251,7 +279,8 @@ def main():
                   playout=dict(playout_top=args.playout_top, playout_cap=args.playout_cap,
                                playout_length=args.playout_length, playout_death=args.playout_death)
                   if args.playout_top else None, late_prob=args.late_prob,
-                  late_tall_prob=args.late_tall_prob, late_tall_rows=args.late_tall_rows)
+                  late_tall_prob=args.late_tall_prob, late_tall_rows=args.late_tall_rows,
+                  late_retarget=args.late_retarget)
     if args.start_board:
         data = json.loads(args.start_board.read_text())
         rows = data['rows'] if isinstance(data, dict) else data
