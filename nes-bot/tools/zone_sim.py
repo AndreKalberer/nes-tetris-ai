@@ -138,6 +138,12 @@ def play(job):
             filled = board.any(axis=1)
             if filled.any() and 20-int(np.argmax(filled)) > config['late_tall_rows']:
                 p_late = config['late_tall_prob']
+        for lo, hi, p_low, p_tall in config.get('late_table') or ():
+            if lo <= level <= hi:
+                filled = board.any(axis=1)
+                tall = filled.any() and 20-int(np.argmax(filled)) > config['late_tall_rows']
+                p_late = p_tall if tall else p_low
+                break
         late = p_late > 0 and rng.random() < p_late
         def build(react):
             n = sim.candidates(board, state, gravity_level, 2, states, react)
@@ -262,6 +268,9 @@ def main():
     p.add_argument('--late-tall-prob', type=float, default=None,
                    help='late chance per piece while the stack is taller than --late-tall-rows (default: --late-prob)')
     p.add_argument('--late-tall-rows', type=int, default=9)
+    p.add_argument('--late-table', nargs='+', default=None, metavar='LO-HI:LOW:TALL',
+                   help='late chance by level range and stack (<= / > --late-tall-rows), e.g. 18-28:.82:.11; '
+                        'overrides --late-prob/--late-tall-prob inside the listed ranges')
     p.add_argument('--late-retarget', action='store_true',
                    help='late pieces keep the on-time choice when it is still reachable (real --late-plan retarget)')
     p.add_argument('--output', type=Path)
@@ -280,7 +289,9 @@ def main():
                                playout_length=args.playout_length, playout_death=args.playout_death)
                   if args.playout_top else None, late_prob=args.late_prob,
                   late_tall_prob=args.late_tall_prob, late_tall_rows=args.late_tall_rows,
-                  late_retarget=args.late_retarget)
+                  late_retarget=args.late_retarget,
+                  late_table=[(int(r.split(':')[0].split('-')[0]), int(r.split(':')[0].split('-')[1]),
+                               float(r.split(':')[1]), float(r.split(':')[2])) for r in args.late_table or ()])
     if args.start_board:
         data = json.loads(args.start_board.read_text())
         rows = data['rows'] if isinstance(data, dict) else data
