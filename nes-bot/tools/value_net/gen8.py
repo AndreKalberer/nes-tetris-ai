@@ -1,4 +1,4 @@
-"""Log trajectories of the score bot at 1G for value-net training (level-235 physics, 8-row tetris/burn switch,
+"""Log trajectories of the score bot at 1G for value-net training (level-235 physics, 9-row tetris/burn switch by default (BELOW),
 top 12 / cap 4 playouts, empty start).
 
 Per placement it stores the board after the lock (200 bits, packed) and the lines cleared; a game ends at LINES lines

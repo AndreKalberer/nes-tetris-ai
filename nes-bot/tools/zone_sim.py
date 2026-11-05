@@ -129,7 +129,14 @@ def play(job):
         if failed:
             return end('top_out')
         # Optional: a late plan (over one frame) loses the first input frame for this piece.
-        late = config.get('late_prob') and rng.random() < config['late_prob']
+        # --late-tall-prob: a separate late chance once the stack is taller than --late-tall-rows (the value net is
+        # off there, so plans are as fast as without it).
+        p_late = config.get('late_prob') or 0.
+        if config.get('late_tall_prob') is not None:
+            filled = board.any(axis=1)
+            if filled.any() and 20-int(np.argmax(filled)) > config['late_tall_rows']:
+                p_late = config['late_tall_prob']
+        late = p_late > 0 and rng.random() < p_late
         n = sim.candidates(board, state, gravity_level, 2, states, reaction+1 if late else reaction)
         boards, cleared, dead, controls, frames = [], [], [], [], []
         seen = {}
@@ -226,6 +233,9 @@ def main():
     p.add_argument('--playout-death', type=float, default=-1000., help='value of a playout that tops out')
     p.add_argument('--late-prob', type=float, default=0.,
                    help='chance per piece that the plan is one frame late (its first input frame is lost)')
+    p.add_argument('--late-tall-prob', type=float, default=None,
+                   help='late chance per piece while the stack is taller than --late-tall-rows (default: --late-prob)')
+    p.add_argument('--late-tall-rows', type=int, default=9)
     p.add_argument('--output', type=Path)
     args = p.parse_args()
     extra = args.extra_zone if args.extra_zone is not None else [[str(REPO/'runs/lowstack-246-249.json'), '246', '249']]
@@ -240,7 +250,8 @@ def main():
                   if args.alt_levels else None, stop_lines=args.stop_lines,
                   playout=dict(playout_top=args.playout_top, playout_cap=args.playout_cap,
                                playout_length=args.playout_length, playout_death=args.playout_death)
-                  if args.playout_top else None, late_prob=args.late_prob)
+                  if args.playout_top else None, late_prob=args.late_prob,
+                  late_tall_prob=args.late_tall_prob, late_tall_rows=args.late_tall_rows)
     if args.start_board:
         data = json.loads(args.start_board.read_text())
         rows = data['rows'] if isinstance(data, dict) else data
