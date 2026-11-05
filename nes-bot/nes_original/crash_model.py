@@ -152,6 +152,9 @@ def crash_map_alerts(observation,plan,counts=None):
 # A top-out ends the attempt for certain, so with a high stack a clear the model
 # rates only partly risky is better than stacking higher: (min stack rows, max risk).
 RISK_BUDGET = ((17,.9),(14,.5),(11,.3))
+import os as _os
+if _os.environ.get('NES_RISK_BUDGET'):  # research override, e.g. '17:.9,14:.5'
+    RISK_BUDGET = tuple((int(a),float(b)) for a,b in (x.split(':') for x in _os.environ['NES_RISK_BUDGET'].split(',')))
 
 
 def stack_height(board):

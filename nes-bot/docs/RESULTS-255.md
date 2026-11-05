@@ -37,6 +37,9 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 | score-start (`run-score-start.sh`) | 957 | 3,291 | 93,209,648 | 427 |
 | score-start (`run-score-start.sh`) | 15868 | 3,293 | 97,029,860 | 450 |
 | score-start (`run-score-start.sh`) | 24340 | 3,290 | 92,280,091 | 430 |
+| score-safe157 (`run-score-safe157.sh`) | 957 | 3,291 | 93,173,075 | 433 |
+| score-safe157 (`run-score-safe157.sh`) | 15868 | 3,293 | 96,176,174 | 450 |
+| score-safe157 (`run-score-safe157.sh`) | 24340 | 3,291 | 95,253,832 | 437 |
 
 All played headless on a Linux cloud machine; the uncapped score matched the real counter at
 every check (0 mismatches). A third score80 game (seed 24340) topped out at level 235 with
@@ -57,6 +60,9 @@ with 0 target misses, averaging 92.8M (score-holes on the same seeds: 92.0M). Si
 about +1.45M per lap over score-holes, and 35/40 five-lap games survived (score-holes 32/40).
 The score-start bot (tetris mode also at levels 18-28) reached level 255 on all three seeds
 with 0 target misses, averaging 94.2M (score-top on the same seeds: 92.8M).
+The score-safe157 bot (no risky crash-zone clears below 14 rows) averaged 94.9M on the same
+three seeds with 0 target misses. Its first seed-957 attempt crashed at level 253 with a
+15-row stack after a drought (verified replay, 3,273 lines, 93.4M). The rerun above reached 255.
 
 ## Level 255
 
