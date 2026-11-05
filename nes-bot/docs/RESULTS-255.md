@@ -34,6 +34,9 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 | score-top (`run-score-top.sh`) | 957 | 3,290 | 96,306,150 | 419 |
 | score-top (`run-score-top.sh`) | 15868 | 3,290 | 93,717,958 | 402 |
 | score-top (`run-score-top.sh`) | 24340 | 3,292 | 88,316,463 | 373 |
+| score-start (`run-score-start.sh`) | 957 | 3,291 | 93,209,648 | 427 |
+| score-start (`run-score-start.sh`) | 15868 | 3,293 | 97,029,860 | 450 |
+| score-start (`run-score-start.sh`) | 24340 | 3,290 | 92,280,091 | 430 |
 
 All played headless on a Linux cloud machine; the uncapped score matched the real counter at
 every check (0 mismatches). A third score80 game (seed 24340) topped out at level 235 with
@@ -52,6 +55,8 @@ with 0 target misses, beating score-wide on each seed. Simulator: about 92.0M pe
 The score-top bot (tetris mode also at 250-252 and 254) reached level 255 on all three seeds
 with 0 target misses, averaging 92.8M (score-holes on the same seeds: 92.0M). Simulator:
 about +1.45M per lap over score-holes, and 35/40 five-lap games survived (score-holes 32/40).
+The score-start bot (tetris mode also at levels 18-28) reached level 255 on all three seeds
+with 0 target misses, averaging 94.2M (score-top on the same seeds: 92.8M).
 
 ## Level 255
 
