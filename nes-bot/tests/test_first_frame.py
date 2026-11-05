@@ -72,6 +72,24 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual({k: v for k, v in data.items() if k not in ('alt_levels', 'scope')},
                          {k: v for k, v in top.items() if k not in ('alt_levels', 'scope')})
 
+    def test_safe157_launcher_only_adds_the_risk_budget(self):
+        script = (TOOLS/'run-score-safe157.sh').read_text(encoding='utf-8')
+        self.assertIn('export NES_RISK_BUDGET=17:.9,14:.5', script)
+        start = (TOOLS/'run-score-start.sh').read_text(encoding='utf-8')
+        kept = [l for l in script.splitlines() if 'NES_RISK_BUDGET' not in l and not l.startswith('#')]
+        self.assertEqual('\n'.join(kept).replace('-safe157', '-start'),
+                         '\n'.join(l for l in start.splitlines() if not l.startswith('#')))
+
+    def test_risk_budget_env_override(self):
+        code = ('from nes_original import crash_model as c; print(c.RISK_BUDGET)')
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]))
+        env.pop('NES_RISK_BUDGET', None)
+        base = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(base, '((17, 0.9), (14, 0.5), (11, 0.3))')
+        env['NES_RISK_BUDGET'] = '17:.9,14:.5'
+        fixed = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(fixed, '((17, 0.9), (14, 0.5))')
+
     def test_other_spawn_settings_get_their_own_numba_cache(self):
         probe = ('import numba.core.config as c; from nes_original import sim; '
                  'print(sim.SPAWN_SETTLE, c.CACHE_DIR)')
