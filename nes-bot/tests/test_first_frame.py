@@ -60,6 +60,18 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual({k: v for k, v in data.items() if k not in ('alt_levels', 'scope')},
                          {k: v for k, v in holes.items() if k not in ('alt_levels', 'scope')})
 
+    def test_start_launcher_adds_tetris_mode_from_level_18(self):
+        script = (TOOLS/'run-score-start.sh').read_text(encoding='utf-8')
+        self.assertIn('NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0', script)
+        self.assertIn('tetris-playout12-b9-vnet-ff-start.json', script)
+        self.assertEqual(script.replace('-start', '-top').replace('levels 18-28, the 1G', 'the 1G'),
+                         (TOOLS/'run-score-top.sh').read_text(encoding='utf-8'))
+        data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-start.json').read_text(encoding='utf-8'))
+        top = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-top.json').read_text(encoding='utf-8'))
+        self.assertEqual(data['alt_levels'], [[18, 150], [159, 167], [174, 248], [250, 252], [254, 254]])
+        self.assertEqual({k: v for k, v in data.items() if k not in ('alt_levels', 'scope')},
+                         {k: v for k, v in top.items() if k not in ('alt_levels', 'scope')})
+
     def test_other_spawn_settings_get_their_own_numba_cache(self):
         probe = ('import numba.core.config as c; from nes_original import sim; '
                  'print(sim.SPAWN_SETTLE, c.CACHE_DIR)')
