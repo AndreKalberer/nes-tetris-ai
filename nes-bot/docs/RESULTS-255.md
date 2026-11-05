@@ -40,6 +40,12 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 | score-safe157 (`run-score-safe157.sh`) | 957 | 3,291 | 93,173,075 | 433 |
 | score-safe157 (`run-score-safe157.sh`) | 15868 | 3,293 | 96,176,174 | 450 |
 | score-safe157 (`run-score-safe157.sh`) | 24340 | 3,291 | 95,253,832 | 437 |
+| score-lowtop (`run-score-lowtop.sh`) | 957 | 3,290 | 93,217,055 | 428 |
+| score-lowtop (`run-score-lowtop.sh`) | 15868 | 3,291 | 93,692,075 | 431 |
+| score-lowtop (`run-score-lowtop.sh`) | 24340 | 3,290 | 88,374,750 | 408 |
+| score-mid (`run-score-mid.sh`) | 957 | 3,291 | 94,045,717 | 433 |
+| score-mid (`run-score-mid.sh`) | 15868 | 3,291 | 95,733,899 | 438 |
+| score-mid (`run-score-mid.sh`) | 24340 | 3,292 | 92,823,256 | 421 |
 
 All played headless on a Linux cloud machine; the uncapped score matched the real counter at
 every check (0 mismatches). A third score80 game (seed 24340) topped out at level 235 with
@@ -63,6 +69,14 @@ with 0 target misses, averaging 94.2M (score-top on the same seeds: 92.8M).
 The score-safe157 bot (no risky crash-zone clears below 14 rows) averaged 94.9M on the same
 three seeds with 0 target misses. Its first seed-957 attempt crashed at level 253 with a
 15-row stack after a drought (verified replay, 3,273 lines, 93.4M). The rerun above reached 255.
+The score-lowtop bot (8-row stack at 240-255) reached level 255 on all three seeds with 0 target
+misses, averaging 91.8M. Real games are not paired: planning time shifts the frame on which each
+piece locks, and the NES picks pieces by frame, so the games differ from the first pieces on and
+three games cannot measure a 0.4M change. The sim estimate above (-0.37M per lap, 97.6% vs 96.0%
+of laps survived) is the comparison to use.
+The score-mid bot (tetris mode also at 151-153, 6-row stack there) reached level 255 on all three
+seeds with 0 target misses, averaging 94.2M. Sim, 100 paired one-lap seeds against score-lowtop:
++0.90 ±0.32M per lap, 97/100 vs 98/100 laps survived (the extra deaths are at levels 194 and 235).
 
 ## Level 255
 
