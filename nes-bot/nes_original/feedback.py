@@ -4,6 +4,7 @@ Unlike the strict preview-audit controller, these actions mean 'try this target
 pose with this fixed controller', not 'the predicted after-board will occur'.
 Target misses and prediction differences are data, never simulated transitions.
 """
+import os
 import time
 
 import numpy as np
@@ -13,6 +14,10 @@ from nes.engine import CELLS,FPS,TYPE
 from nes_original.env import Buttons,ObservationFault,from_game_bits
 from nes_original.planner import proposals
 
+
+
+# Research: NES_PLAN_LOG=path appends 'level height ms' per first plan of a piece.
+_PLAN_LOG = open(os.environ['NES_PLAN_LOG'],'a',buffering=1) if os.environ.get('NES_PLAN_LOG') else None
 
 class ControllerObservationError(ObservationFault):
     """Public observation cannot satisfy this controller's pose contract.
@@ -160,6 +165,10 @@ class FeedbackController:
             elapsed = time.perf_counter()-start
             self.plans += 1
             self.planning_seconds += elapsed
+            if _PLAN_LOG:
+                filled = np.asarray(obs.board).any(axis=1)
+                height = 0 if not filled.any() else 20-int(np.argmax(filled))
+                _PLAN_LOG.write(f'{obs.level} {height} {elapsed*1000:.2f}\n')
             if elapsed > max(1, self.reaction_frames)/FPS:
                 self.overruns += 1
                 if not self.fixed_reaction:
