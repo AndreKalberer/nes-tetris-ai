@@ -80,6 +80,26 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual('\n'.join(kept).replace('-safe157', '-start'),
                          '\n'.join(l for l in start.splitlines() if not l.startswith('#')))
 
+    def test_lowtop_launcher_only_swaps_the_weights(self):
+        script = (TOOLS/'run-score-lowtop.sh').read_text(encoding='utf-8')
+        safe = (TOOLS/'run-score-safe157.sh').read_text(encoding='utf-8')
+        code = lambda text: [l for l in text.splitlines() if not l.startswith('#')]
+        self.assertEqual([l.replace('-lowtop', '-safe157').replace('ff-safe157.json', 'ff-start.json') for l in code(script)],
+                         code(safe))
+        data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-lowtop.json').read_text(encoding='utf-8'))
+        start = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-start.json').read_text(encoding='utf-8'))
+        self.assertEqual(data['alt_below_levels'], [[240, 255, 8]])
+        self.assertEqual({k: v for k, v in data.items() if k not in ('alt_below_levels', 'scope')},
+                         {k: v for k, v in start.items() if k != 'scope'})
+
+    def test_alt_below_levels_lowers_the_tetris_stack_cap(self):
+        from nes_original.sim import tuned_selector
+        sel = tuned_selector('dellacherie', alt_weights=str(WEIGHTS/'tetris-playout12-b9-vnet-ff-lowtop.json'))
+        self.assertEqual(sel.alt[1], 9)
+        self.assertEqual(sel.alt_below_levels, ((240, 255, 8),))
+        plain = tuned_selector('dellacherie', alt_weights=str(WEIGHTS/'tetris-playout12-b9-vnet-ff-start.json'))
+        self.assertEqual(plain.alt_below_levels, ())
+
     def test_risk_budget_env_override(self):
         code = ('from nes_original import crash_model as c; print(c.RISK_BUDGET)')
         env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]))
