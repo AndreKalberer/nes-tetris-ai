@@ -1076,6 +1076,10 @@ class TunedSelector:
         if self.alt is not None and not in_zone:
             alt_w,below,alt_well,ranges,burn = self.alt
             if any(lo<=observation.level<=hi for lo,hi in ranges):
+                for blo,bhi,bval in getattr(self,'alt_below_levels',()):
+                    if blo<=observation.level<=bhi:
+                        below = bval
+                        break
                 if stack_height(observation.board)<=below:
                     w,well = alt_w,alt_well
                     ban = root_ban = self.alt_ban
@@ -1215,6 +1219,7 @@ def tuned_selector(weights='score_start',*,beam=3,expect=0,zone_weights=None,zon
         selector.alt = (pad_weights(data['alt_weights']),int(data['alt_below']),int(data.get('alt_well',9)),
                         tuple((int(a),int(b)) for a,b in levels),None if burn is None else pad_weights(burn))
         selector.alt_ban = int(data.get('alt_ban',0))
+        selector.alt_below_levels = tuple((int(a),int(b),int(c)) for a,b,c in data.get('alt_below_levels',()))
         selector.alt_expect = data.get('alt_expect')
         selector.burn_expect = data.get('burn_expect')
         # A weights file may turn on playouts itself; explicit arguments win.
