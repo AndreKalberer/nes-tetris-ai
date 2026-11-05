@@ -100,6 +100,26 @@ class FirstFrameTests(unittest.TestCase):
         plain = tuned_selector('dellacherie', alt_weights=str(WEIGHTS/'tetris-playout12-b9-vnet-ff-start.json'))
         self.assertEqual(plain.alt_below_levels, ())
 
+    def test_mid_launcher_only_swaps_the_weights(self):
+        script = (TOOLS/'run-score-mid.sh').read_text(encoding='utf-8')
+        low = (TOOLS/'run-score-lowtop.sh').read_text(encoding='utf-8')
+        code = lambda text: [l for l in text.splitlines() if not l.startswith('#')]
+        self.assertEqual([l.replace('-mid', '-lowtop') for l in code(script)], code(low))
+        data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-mid.json').read_text(encoding='utf-8'))
+        lowtop = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-lowtop.json').read_text(encoding='utf-8'))
+        self.assertEqual(data['alt_levels'][0], [18, 153])
+        self.assertEqual(data['alt_levels'][1:], lowtop['alt_levels'][1:])
+        self.assertEqual(data['alt_below_levels'], [[151, 153, 6], [240, 255, 8]])
+        self.assertEqual({k: v for k, v in data.items() if k not in ('alt_levels', 'alt_below_levels', 'scope')},
+                         {k: v for k, v in lowtop.items() if k not in ('alt_levels', 'alt_below_levels', 'scope')})
+
+    def test_mid_caps_the_stack_at_151_153_only(self):
+        from nes_original.sim import tuned_selector
+        sel = tuned_selector('dellacherie', alt_weights=str(WEIGHTS/'tetris-playout12-b9-vnet-ff-mid.json'))
+        self.assertEqual(sel.alt[1], 9)
+        self.assertEqual(sel.alt[3][0], (18, 153))
+        self.assertEqual(sel.alt_below_levels, ((151, 153, 6), (240, 255, 8)))
+
     def test_risk_budget_env_override(self):
         code = ('from nes_original import crash_model as c; print(c.RISK_BUDGET)')
         env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]))
