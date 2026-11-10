@@ -38,6 +38,11 @@ CRASH_MAP = {
 # which also covers the second lap after the 255 -> 0 rebirth; CRASH_MAP stays
 # as the first-lap reference table it was validated against.
 USE_CYCLE_MODEL = True
+# Next-box option (NES_HIDE_BOX=1; zone sim and the real controller): the bot may hide the next box (Select before the lock, Select again on
+# the next piece's first frame) for one lock when the cycle model rates that safer. Drawing
+# the box costs 394 cycles in the clear frame, so hiding it moves the crash timing.
+import os as _os0
+HIDE_BOX = _os0.environ.get('NES_HIDE_BOX','0')=='1'
 MODEL_FROM_LEVEL = 150
 # At levels where Down is normally suppressed, a clear may hold Down when the model
 # rates its pushdown safer than none (the controller follows CrashMapPrioritizer.wants_down).
@@ -103,22 +108,35 @@ def crash_map_alerts(observation,plan,counts=None):
             level = row['pre_level']
 
             def risk(pushdowns):
-                return max(model_crash_probability(level,int(observation.lines),cleared,rows_high=high_rows,
-                    pushdown_raw=pd,clear_count_carry=carry) for pd in pushdowns)
+                def one(box):
+                    return max(model_crash_probability(level,int(observation.lines),cleared,rows_high=high_rows,
+                        pushdown_raw=pd,clear_count_carry=carry,next_box=box) for pd in pushdowns)
+                # (probability, hide box) for this pushdown option; the caller sets the
+                # flag only for the option it keeps.
+                shown = one(True)
+                if HIDE_BOX and shown>0:
+                    hidden = one(False)
+                    if hidden<shown-1e-9:
+                        return hidden,True
+                return shown,False
             # With Down held the actual raw pushdown is the prediction or one less (measured).
             predicted = int(controls[i].soft_points) if controls is not None else 0
             with_down = tuple({predicted,max(0,predicted-1)})
             if level in NO_SOFTDROP_LEVELS:
                 # Down is normally suppressed here; hold it for this clear only if the
                 # model rates that strictly safer (e.g. single entering 158: 100% -> 0%).
-                probability = no_down = risk((0,))
+                probability,hide = no_down,_ = risk((0,))
                 if DOWN_OPTION and controls is not None and predicted>=2:
-                    down = risk(with_down)
+                    down,down_hide = risk(with_down)
                     if down<no_down-1e-9:
-                        probability = down
+                        probability,hide = down,down_hide
                         row['use_down'] = True
             else:  # Down kept at 249/253/255
-                probability = risk(with_down) if controls is not None else risk((0,))
+                probability,hide = risk(with_down) if controls is not None else risk((0,))
+            if hide:
+                row['hide_box'] = True
+            else:
+                row.pop('hide_box',None)
             detail = dict(rows_high=high_rows,count_carry=carry,counts_known=counts is not None,
                 use_down=bool(row.get('use_down')),predicted_pushdown=predicted,source='cycle_model')
             alert = name(*key)
@@ -136,7 +154,11 @@ def crash_map_alerts(observation,plan,counts=None):
         elif cleared==0 and row['pre_level'] in NEEDS_PUSHDOWN and controls is not None:
             control = controls[i]
             kind = piece_class(control.orientation)
-            if kind in NEEDS_PUSHDOWN[row['pre_level']] and control.soft_points<MIN_PREDICTED_PUSHDOWN:
+            pd = int(control.soft_points)
+            if (HIDE_BOX and max(model_crash_probability(row['pre_level'],int(observation.lines),0,pushdown_raw=x,
+                    piece_class=kind,next_box=False) for x in {pd,max(0,pd-1)})==0):
+                row['hide_box'] = True  # box hidden: safe without pushdown
+            elif kind in NEEDS_PUSHDOWN[row['pre_level']] and control.soft_points<MIN_PREDICTED_PUSHDOWN:
                 probability = 1.
                 detail = dict(piece_class=kind,predicted_pushdown=int(control.soft_points))
                 alert = f'crash_map_zero_line_{kind}_no_pushdown_{row["pre_level"]}'
@@ -194,8 +216,8 @@ def trap_risk(level,lines,singles_so_far):
     if after_clear(level,lines,1)[0]==level:
         return 0.  # within-level hazards cannot be dodged by the line count; only level-entry ones
     carry = None if singles_so_far is None else (singles_so_far+1)%10==0
-    return min(model_crash_probability(level,lines,1,rows_high=0,pushdown_raw=pd,clear_count_carry=carry)
-               for pd in (0,3))
+    return min(model_crash_probability(level,lines,1,rows_high=0,pushdown_raw=pd,clear_count_carry=carry,next_box=box)
+               for pd in (0,3) for box in ((True,False) if HIDE_BOX else (True,)))
 
 
 class _PreemptScores:
@@ -254,6 +276,7 @@ class CrashMapPrioritizer(DocumentedHazardPrioritizer):
         self.budget_table = None  # None = RISK_BUDGET
         self.accepted_risks = 0
         self.wants_down = False
+        self.wants_hide = False
         self.down_choices = 0
         if preempt:
             self.base_selector = _PreemptScores(self,self.base_selector)
@@ -299,6 +322,7 @@ class CrashMapPrioritizer(DocumentedHazardPrioritizer):
         selected = super().__call__(observation,plan)
         # The controller holds Down for this piece only if the chosen clear is safer with it.
         self.wants_down = bool(self.last_rows and self.last_rows[selected].get('use_down'))
+        self.wants_hide = bool(HIDE_BOX and self.last_rows and self.last_rows[selected].get('hide_box'))
         self.down_choices += int(self.wants_down)
         self.last_decision.update(scope=SCOPE,alert_profile='hydrant_crash_map_no_pushdown',wants_down=self.wants_down,
             clear_counts=list(self.counts),clear_counts_known=self.counts_known)
@@ -316,7 +340,7 @@ class CrashMapPrioritizer(DocumentedHazardPrioritizer):
 
 
 def model_crash_probability(observation_level,observation_lines,cleared,rows_high=None,pushdown_raw=0,
-                            clear_count_carry=None,piece_class=None):
+                            clear_count_carry=None,piece_class=None,next_box=True):
     """Fatal-crash probability from the full cycle model (nes_original.crash_cycle_model).
 
     Unlike CRASH_MAP (first lap, levels 155-173 only) this works at any 8-bit level and
@@ -331,4 +355,4 @@ def model_crash_probability(observation_level,observation_lines,cleared,rows_hig
     if cleared==0:
         clear_count_carry = False
     return worst_fatal(observation_level,observation_lines,cleared,rows_high=rows_high,
-        pushdown_raw=pushdown_raw,clear_count_carry=clear_count_carry,piece_class=piece_class)
+        pushdown_raw=pushdown_raw,clear_count_carry=clear_count_carry,piece_class=piece_class,next_box=next_box)

@@ -58,6 +58,16 @@ class FeedbackController:
             raise ValueError("Late plan handling must be 'replan', 'keep' or 'retarget'")
         self.late_plan = late_plan
         self.context_selector = context_selector
+        # Next-box flash (crash_model.HIDE_BOX): when the selector marks the chosen lock as safer
+        # with the next box hidden, press Select on the first non-active frame after the lock
+        # (box off for that lock's line-count frame) and again on the next piece's first active
+        # frame (box back on). The preview was already seen; the bot reads nothing new.
+        import os as _os
+        self.hide_box = _os.environ.get('NES_HIDE_BOX') == '1'
+        self.box_hidden = False
+        self.hide_this_lock = False
+        self.hide_presses = 0
+        self._last_phase = None
         self.tap_period = tap_period
         self.no_softdrop_at_1g = bool(no_softdrop_at_1g)
         try:
@@ -141,6 +151,26 @@ class FeedbackController:
         return int(Buttons.DOWN)
 
     def command(self,obs):
+        buttons = self._command(obs)
+        if not self.hide_box:
+            return buttons
+        from nes_original.env import Buttons
+        select = 0
+        if obs.phase == 1:
+            if self.box_hidden:
+                select = int(Buttons.SELECT)   # first active frame of the next piece: box back on
+                self.box_hidden = False
+                self.hide_this_lock = False
+            elif self.stage is not None and getattr(self, 'plan', None) is not None:
+                self.hide_this_lock = bool(getattr(self.context_selector, 'wants_hide', False))
+        elif self._last_phase == 1 and self.hide_this_lock and not self.box_hidden and not obs.over:
+            select = int(Buttons.SELECT)       # first frame after the lock: box off
+            self.box_hidden = True
+            self.hide_presses += 1
+        self._last_phase = obs.phase
+        return buttons | select
+
+    def _command(self,obs):
         if self.stall_rescue_input and obs.phase == 1:
             self._reset_stall_window()
         if obs.phase != 1:
@@ -406,7 +436,7 @@ class FeedbackController:
             piece_type_differences=self.piece_type_differences,
             action_interface='Native feedback targets; approximate proposal features',
             reaction_frames=self.reaction_frames,late_plan=self.late_plan,
-            late_checks=self.late_checks,late_replans=self.late_replans,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
+            late_checks=self.late_checks,late_replans=self.late_replans,hide_box=self.hide_box,hide_presses=self.hide_presses,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
             horizontal_pulse_period=self.tap_period,rotation_period=4,
             no_softdrop_at_1g=self.no_softdrop_at_1g,
             no_softdrop_levels=sorted(self.no_softdrop_levels),
