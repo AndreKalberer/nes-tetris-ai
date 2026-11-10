@@ -77,7 +77,7 @@
    254
   ]
  ],
- "scope": "Tetris/burn weights (CEM, 1G, reaction 0, expect 2 in the loop) with an 8-row tetris stack and StackRabbit-style playouts (top 12 current x next pairs, at most 4 per placement, all 49 two-piece sequences played greedily). Tetris mode at levels 29-150 and 176-243. Simulator: 80.4M points per lap, 98/100 laps survive. Needs about 10 ms per plan on 3 planner cores; playout_budget (seconds) cuts the weakest pairs when a plan runs long. Value net v3 (MLP 210-128-128-1 trained on 2.8M boards from 80M-bot trajectories, some with random moves) added at playout leaves with weight 12, only at levels 176-243 and while the stack is at most 6 rows. First-frame variant: run with NES_FIRST_FRAME=1 and NES_SPAWN_SETTLE=0 (the controller acts on the spawn frame), which makes a 9-row tetris stack safe. Wide variant: tetris mode also at levels 159-167, 174-175 and 244-248 (the lowstack 246-249 zone is dropped by run-score-wide.sh). Holes variant: the tetris-mode holes, hole_rows and covered weights are doubled (simulator, 100 laps: 92.0M, 100/100; wide bot 89.6M). Top-levels variant: tetris mode also at 250-252 and 254, not at 249 or 253 (run-score-top.sh drops the Dellacherie 250-254 zone). Start-levels variant: tetris mode also at levels 18-28 at the start of the game (2-3 frames per row, simulator +0.75M, 0 deaths in 200 starts). Low-top variant: tetris stack 8 rows instead of 9 at levels 240-255 (alt_below_levels). Mid variant: tetris mode also at levels 151-153 with a 6-row stack there, so the bot reaches the 154-158 zone low (alt_below_levels [151,153,6]). V8 variant: value net v8a (MLP 210-128-128-1 fit to rollout-averaged returns: 16 greedy 60-piece playouts per board on random NES pieces, about 290k boards from score-start games) at playout leaves with weight 24, at levels 18-243 while the stack is at most 9 rows.",
+ "scope": "Tetris/burn weights (CEM, 1G, reaction 0, expect 2 in the loop) with an 8-row tetris stack and StackRabbit-style playouts (top 12 current x next pairs, at most 4 per placement, all 49 two-piece sequences played greedily). Tetris mode at levels 29-150 and 176-243. Simulator: 80.4M points per lap, 98/100 laps survive. Needs about 10 ms per plan on 3 planner cores; playout_budget (seconds) cuts the weakest pairs when a plan runs long. Value net v3 (MLP 210-128-128-1 trained on 2.8M boards from 80M-bot trajectories, some with random moves) added at playout leaves with weight 12, only at levels 176-243 and while the stack is at most 6 rows. First-frame variant: run with NES_FIRST_FRAME=1 and NES_SPAWN_SETTLE=0 (the controller acts on the spawn frame), which makes a 9-row tetris stack safe. Wide variant: tetris mode also at levels 159-167, 174-175 and 244-248 (the lowstack 246-249 zone is dropped by run-score-wide.sh). Holes variant: the tetris-mode holes, hole_rows and covered weights are doubled (simulator, 100 laps: 92.0M, 100/100; wide bot 89.6M). Top-levels variant: tetris mode also at 250-252 and 254, not at 249 or 253 (run-score-top.sh drops the Dellacherie 250-254 zone). Start-levels variant: tetris mode also at levels 18-28 at the start of the game (2-3 frames per row, simulator +0.75M, 0 deaths in 200 starts). Low-top variant: tetris stack 8 rows instead of 9 at levels 240-255 (alt_below_levels). Mid variant: tetris mode also at levels 151-153 with a 6-row stack there, so the bot reaches the 154-158 zone low (alt_below_levels [151,153,6]). V8 variant: value net v8b (MLP 210-256-256-1 fit to rollout-averaged returns: 16 greedy 60-piece playouts per board on random NES pieces, about 730k boards from score-start games) at playout leaves with weight 40, at levels 18-153 and 176-243 (off in the 154-175 crash zone) while the stack is at most 9 rows.",
  "burn_weights": [
   -3.9640593296492357,
   -0.2694912948406061,
@@ -111,11 +111,15 @@
  "playout_cap": 4,
  "playout_length": 2,
  "playout_death": -1000.0,
- "value_net": "value-net-v8a.npz",
- "value_lam": 24.0,
+ "value_net": "value-net-v8b.npz",
+ "value_lam": 40.0,
  "value_levels": [
   [
    18,
+   153
+  ],
+  [
+   176,
    243
   ]
  ],

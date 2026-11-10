@@ -127,7 +127,7 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual([l.replace('-v8', '-mid') for l in code(script)], code(mid))
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-v8.json').read_text(encoding='utf-8'))
         base = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-mid.json').read_text(encoding='utf-8'))
-        changed = {'value_net': 'value-net-v8a.npz', 'value_lam': 24.0, 'value_levels': [[18, 243]], 'value_max_height': 9}
+        changed = {'value_net': 'value-net-v8b.npz', 'value_lam': 40.0, 'value_levels': [[18, 153], [176, 243]], 'value_max_height': 9}
         self.assertEqual({k: data[k] for k in changed}, changed)
         self.assertEqual({k: v for k, v in data.items() if k not in changed and k != 'scope'},
                          {k: v for k, v in base.items() if k not in changed and k != 'scope'})
@@ -135,9 +135,9 @@ class FirstFrameTests(unittest.TestCase):
     def test_v8_value_net_loads(self):
         from nes_original.sim import tuned_selector
         sel = tuned_selector('dellacherie', alt_weights=str(WEIGHTS/'tetris-playout12-b9-vnet-ff-v8.json'))
-        self.assertEqual(sel.value_levels, ((18, 243),))
+        self.assertEqual(sel.value_levels, ((18, 153), (176, 243)))
         self.assertEqual(sel.value_max_height, 9)
-        self.assertEqual([w.shape for w in sel.value_net[::2]], [(128, 210), (128, 128), (1, 128)])
+        self.assertEqual([w.shape for w in sel.value_net[::2]], [(256, 210), (256, 256), (1, 256)])
 
     def test_risk_budget_env_override(self):
         code = ('from nes_original import crash_model as c; print(c.RISK_BUDGET)')
