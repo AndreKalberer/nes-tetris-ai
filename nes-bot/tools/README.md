@@ -14,6 +14,7 @@ NES original-cartridge (level 255) work — see [docs/NES-255.md](../docs/NES-25
 | `run-score-start.sh SEED [255\|511\|endless]` | `run-score-top.sh` with tetris mode also at the start levels 18-28. Same cores as `run-score80.sh`. |
 | `run-score-safe157.sh SEED [255\|511\|endless]` | `run-score-start.sh` with `NES_RISK_BUDGET=17:.9,14:.5`: no risky crash-zone clears below a 14-row stack, which removes most level-157 deaths. Same cores as `run-score80.sh`. |
 | `run-score-lowtop.sh SEED [255\|511\|endless]` | `run-score-safe157.sh` with an 8-row tetris stack (instead of 9) at levels 240-255, set by `alt_below_levels` in the weights file. Fewer top-outs near the end of a lap, at about 0.4M per lap less. Same cores as `run-score80.sh`. |
+| `run-score-v8.sh SEED [255\|511\|endless]` | `run-score-mid.sh` with leaf value net v8b (rollout-averaged labels) at levels 18-153 and 176-243 up to a 9-row stack. Same cores as `run-score80.sh`. |
 | `run-score-mid.sh SEED [255\|511\|endless]` | `run-score-lowtop.sh` with tetris mode also at levels 151-153, capped at a 6-row stack there (`alt_below_levels`) so the bot reaches the 154-158 zone low. Simulator: about +0.9M per lap against `run-score-lowtop.sh`. Same cores as `run-score80.sh`. |
 | `value_net/gen.py`, `value_net/train.py` | Simulated 1G trajectories for value-net training, and the trainer that exports the `.npz` net (needs PyTorch). |
 | `run-score50.sh SEED [255\|511\|endless]` | Same as `run255.sh` with the 50M score bot (CEM tetris weights, 3rd-piece expectation, no spawn wait). |

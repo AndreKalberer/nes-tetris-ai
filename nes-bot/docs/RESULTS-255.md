@@ -46,6 +46,12 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 | score-mid (`run-score-mid.sh`) | 957 | 3,291 | 94,045,717 | 433 |
 | score-mid (`run-score-mid.sh`) | 15868 | 3,291 | 95,733,899 | 438 |
 | score-mid (`run-score-mid.sh`) | 24340 | 3,292 | 92,823,256 | 421 |
+| score-v8 (`run-score-v8.sh`) | 957 | 3,291 | 99,077,124 | 476 |
+| score-v8 (`run-score-v8.sh`) | 15868 | 3,292 | 101,332,409 | 476 |
+| score-v8 (`run-score-v8.sh`) | 24340 | 3,291 | 101,979,820 | 489 |
+| score-v8 (`run-score-v8.sh`) | 7 | 3,291 | 97,304,200 | 473 |
+| score-v8 (`run-score-v8.sh`) | 100 | 3,290 | 103,115,310 | 493 |
+| score-v8 (`run-score-v8.sh`) | 200 | 3,292 | 103,426,918 | 497 |
 
 All played headless on a Linux cloud machine; the uncapped score matched the real counter at
 every check (0 mismatches). A third score80 game (seed 24340) topped out at level 235 with
@@ -77,6 +83,11 @@ of laps survived) is the comparison to use.
 The score-mid bot (tetris mode also at 151-153, 6-row stack there) reached level 255 on all three
 seeds with 0 target misses, averaging 94.2M. Sim, 100 paired one-lap seeds against score-lowtop:
 +0.90 ±0.32M per lap, 97/100 vs 98/100 laps survived (the extra deaths are at levels 194 and 235).
+The score-v8 bot (value net v8b at levels 18-153 and 176-243 up to a 9-row stack) reached level
+255 on all six seeds with 0 target misses, averaging 101.04M (score-mid on 957, 15868 and 24340:
+94.2M), with 473-497 tetrises per game. Planning is slower (about 7,000 of 8,230 plans overran
+the frame budget and were retargeted, against about 1,900 before), but no target was missed
+and at most 2 plans per game changed board.
 
 ## Level 255
 

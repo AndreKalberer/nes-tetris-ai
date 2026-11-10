@@ -740,9 +740,10 @@ def _playout_total(root,pose,seqs,prob,level,tap_period,reaction,well,w,length,d
     return total
 
 
-@njit(cache=True)
+@njit(cache=True,fastmath=True)
 def value_net(board,W1,b1,W2,b2,W3,b3):
-    """Learned leaf value of a board: MLP over the 200 cells plus 10 column heights / 20 (ReLU, 2 hidden layers)."""
+    """Learned leaf value of a board: MLP over the 200 cells plus 10 column heights / 20 (ReLU, 2 hidden layers).
+    W1 is stored column-major by load_value_net, so each filled cell adds one contiguous column (SIMD-friendly)."""
     H = b1.shape[0]
     h1 = b1.copy()
     for c in range(10):
@@ -755,16 +756,17 @@ def value_net(board,W1,b1,W2,b2,W3,b3):
                 for j in range(H):
                     h1[j] += W1[j,k]
         if hc>0:
+            x = hc/20.
             for j in range(H):
-                h1[j] += W1[j,200+c]*(hc/20.)
+                h1[j] += W1[j,200+c]*x
+    for j in range(H):
+        h1[j] = max(h1[j],0.)
     out = b3[0]
     for i in range(b2.shape[0]):
         a = b2[i]
         for j in range(H):
-            if h1[j]>0.:
-                a += W2[i,j]*h1[j]
-        if a>0.:
-            out += W3[0,i]*a
+            a += W2[i,j]*h1[j]
+        out += W3[0,i]*max(a,0.)
     return out
 
 
@@ -819,7 +821,8 @@ def playout_scores_net(roots,root_part,root_das,next_orientation,level,tap_perio
 def load_value_net(path):
     """(W1,b1,W2,b2,W3,b3) float64 arrays from a value-net .npz file."""
     data = np.load(path)
-    return tuple(np.ascontiguousarray(data[k],dtype=np.float64) for k in ('W1','b1','W2','b2','W3','b3'))
+    W1 = np.asfortranarray(data['W1'],dtype=np.float64)  # column-major: value_net walks one input column at a time
+    return (W1,)+tuple(np.ascontiguousarray(data[k],dtype=np.float64) for k in ('b1','W2','b2','W3','b3'))
 
 
 @njit(cache=True)
