@@ -95,7 +95,8 @@ The score-nextbox bot (Select hides the next box before risky clears, tetris mod
 reached level 255 on seeds 957, 15868 and 24340, averaging 101.04M (score-v8 on the same seeds:
 100.80M). It hid the box 29 times on seed 15868 (3 in 154-175, 26 at 249/253). Seed 15868 was
 played before the stale hide-flag fix; a first seed-957 game without that fix crashed at 172
-(verified replay, 1,661 lines). Sim: 99/100 vs 96/100 laps survived against score-v8.
+(verified replay, 1,661 lines). Sim: 99/100 vs 96/100 one-lap runs survived against score-v8;
+five laps, 40 paired games: 37/40 vs 33/40 survived all five laps, +0.94M per lap.
 
 ## Level 255
 
