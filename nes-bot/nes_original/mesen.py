@@ -616,7 +616,7 @@ class MesenGame:
         buttons = int(buttons)
         if not self.started or self.over:
             raise RuntimeError('Reset before stepping, and do not step a finished game')
-        if buttons < 0 or buttons & ~GAMEPLAY_MASK:
+        if buttons < 0 or buttons & ~(GAMEPLAY_MASK | int(Buttons.SELECT)):
             raise ValueError('Gameplay supports only Left/Right/Down/A/B')
         if buttons & int(Buttons.LEFT | Buttons.RIGHT) == int(Buttons.LEFT | Buttons.RIGHT):
             raise ValueError('Opposite horizontal directions are excluded by this protocol')

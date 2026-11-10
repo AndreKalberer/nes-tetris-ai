@@ -109,10 +109,11 @@ def play(job):
     snapshots = {}
     moves = []
     late_replans = 0
+    hidden_boxes = 0
     def end(result, **extra):
         return dict(seed=seed, result=result, level=level, lines=lines, points=points, snapshots=snapshots,
                     moves=moves, bands={f'{a}-{b}': v for (a, b), v in zip(BANDS, bands)},
-                    late_replans=late_replans, **extra)
+                    late_replans=late_replans, **({'hidden_boxes': hidden_boxes} if hidden_boxes else {}), **extra)
 
     while (lines < config['stop_lines']) if full else (level < stop_level):
         for t in (1480, 1500, 1510):
@@ -201,11 +202,13 @@ def play(job):
             return end('top_out')
         # Crash sampling with the true conditions for the chosen move.
         p = row['modelled_crash_probability'] if cleared[index] else 0.
-        if not cleared[index] and level in NEEDS_PUSHDOWN and piece_class(controls[index].orientation) in NEEDS_PUSHDOWN[level]:
+        if (not cleared[index] and level in NEEDS_PUSHDOWN and piece_class(controls[index].orientation) in NEEDS_PUSHDOWN[level]
+                and not row.get('hide_box')):
             # Measured: actual pushdown is 0 (65%) or 1 (35%) below the prediction.
             actual = max(0, controls[index].soft_points - int(rng.random() < .35))
             if actual < 2:
                 p = ZERO_LINE_CRASH[level].get(piece_class(controls[index].orientation), 0.)
+        hidden_boxes += bool(row.get('hide_box'))
         if config.get('record_moves'):
             moves[-1]['crash_p'] = round(float(p), 9)
         if p and rng.random() < p:

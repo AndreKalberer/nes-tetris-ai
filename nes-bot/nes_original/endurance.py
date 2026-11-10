@@ -302,6 +302,7 @@ def main():
         # public observation/proposal pair and no emulator/internal RNG state.
         selected = selector(observation, plan)
         log_alert_selection.wants_down = bool(getattr(selector, 'wants_down', False))
+        log_alert_selection.wants_hide = bool(getattr(selector, 'wants_hide', False))
         decision = selector.last_decision
         if args.trace_levels and args.trace_levels[0] <= observation.level <= args.trace_levels[1]:
             # Full decision input for offline replay (diagnostics only; never fed back).
