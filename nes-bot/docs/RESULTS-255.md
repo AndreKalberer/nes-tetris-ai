@@ -52,6 +52,9 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 | score-v8 (`run-score-v8.sh`) | 7 | 3,291 | 97,304,200 | 473 |
 | score-v8 (`run-score-v8.sh`) | 100 | 3,290 | 103,115,310 | 493 |
 | score-v8 (`run-score-v8.sh`) | 200 | 3,292 | 103,426,918 | 497 |
+| score-nextbox (`run-score-nextbox.sh`) | 15868 | 3,291 | 101,395,743 | 488 |
+| score-nextbox (`run-score-nextbox.sh`) | 24340 | 3,291 | 102,166,391 | 488 |
+| score-nextbox (`run-score-nextbox.sh`) | 957 | 3,291 | 99,568,652 | 465 |
 
 All played headless on a Linux cloud machine; the uncapped score matched the real counter at
 every check (0 mismatches). A third score80 game (seed 24340) topped out at level 235 with
@@ -88,6 +91,11 @@ The score-v8 bot (value net v8b at levels 18-153 and 176-243 up to a 9-row stack
 94.2M), with 473-497 tetrises per game. Planning is slower (about 7,000 of 8,230 plans overran
 the frame budget and were retargeted, against about 1,900 before), but no target was missed
 and at most 2 plans per game changed board.
+The score-nextbox bot (Select hides the next box before risky clears, tetris mode at 154-158)
+reached level 255 on seeds 957, 15868 and 24340, averaging 101.04M (score-v8 on the same seeds:
+100.80M). It hid the box 29 times on seed 15868 (3 in 154-175, 26 at 249/253). Seed 15868 was
+played before the stale hide-flag fix; a first seed-957 game without that fix crashed at 172
+(verified replay, 1,661 lines). Sim: 99/100 vs 96/100 laps survived against score-v8.
 
 ## Level 255
 

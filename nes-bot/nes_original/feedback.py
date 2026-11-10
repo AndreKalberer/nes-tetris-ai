@@ -436,7 +436,7 @@ class FeedbackController:
             piece_type_differences=self.piece_type_differences,
             action_interface='Native feedback targets; approximate proposal features',
             reaction_frames=self.reaction_frames,late_plan=self.late_plan,
-            late_checks=self.late_checks,late_replans=self.late_replans,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
+            late_checks=self.late_checks,late_replans=self.late_replans,hide_box=self.hide_box,hide_presses=self.hide_presses,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
             horizontal_pulse_period=self.tap_period,rotation_period=4,
             no_softdrop_at_1g=self.no_softdrop_at_1g,
             no_softdrop_levels=sorted(self.no_softdrop_levels),

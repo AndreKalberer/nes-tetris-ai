@@ -38,7 +38,7 @@ CRASH_MAP = {
 # which also covers the second lap after the 255 -> 0 rebirth; CRASH_MAP stays
 # as the first-lap reference table it was validated against.
 USE_CYCLE_MODEL = True
-# Research (sim only): the bot may hide the next box (Select before the lock, Select again on
+# Next-box option (NES_HIDE_BOX=1; zone sim and the real controller): the bot may hide the next box (Select before the lock, Select again on
 # the next piece's first frame) for one lock when the cycle model rates that safer. Drawing
 # the box costs 394 cycles in the clear frame, so hiding it moves the crash timing.
 import os as _os0
