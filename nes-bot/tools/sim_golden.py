@@ -88,6 +88,7 @@ def zone_game(zone, seed, config=None):
     moves = json.dumps(r.pop('moves'), sort_keys=True).encode()
     r.pop('snapshots', None)
     r.pop('points', None); r.pop('bands', None)   # score tally added with the full-game mode; not part of the recording
+    r.pop('late_replans', None)   # late-retarget counter (research); not part of the recording
     r['moves_sha1'] = hashlib.sha1(moves).hexdigest()
     return r
 
