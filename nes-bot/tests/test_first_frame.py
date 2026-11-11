@@ -16,30 +16,18 @@ class FirstFrameTests(unittest.TestCase):
         self.assertFalse(FeedbackController(selector=None, first_frame=False).first_frame)
         self.assertTrue(FeedbackController(selector=None, first_frame=True).first_frame)
 
-    def test_launcher_turns_on_first_frame_with_the_9_row_weights(self):
-        script = (TOOLS/'run-score-ff.sh').read_text(encoding='utf-8')
-        self.assertIn('NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0', script)
-        self.assertIn('NUMBA_CACHE_DIR', script)
-        self.assertIn('tetris-playout12-b9-vnet-ff.json', script)
+    def test_first_frame_weights_use_a_9_row_stack(self):
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff.json').read_text(encoding='utf-8'))
         self.assertEqual(data['alt_below'], 9)
         self.assertEqual(data['value_net'], 'value-net-v3.npz')
         self.assertEqual(data['value_max_height'], 6)
 
-    def test_wide_launcher_adds_tetris_levels_and_drops_the_lowstack_zone(self):
-        script = (TOOLS/'run-score-wide.sh').read_text(encoding='utf-8')
-        self.assertIn('NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0', script)
-        self.assertIn('tetris-playout12-b9-vnet-ff-wide.json', script)
-        self.assertNotIn('lowstack-246-249', script)
+    def test_wide_weights_add_tetris_levels(self):
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-wide.json').read_text(encoding='utf-8'))
         self.assertEqual(data['alt_levels'], [[29, 150], [159, 167], [174, 248]])
         self.assertEqual(data['alt_below'], 9)
 
-    def test_holes_launcher_doubles_only_the_tetris_hole_weights(self):
-        script = (TOOLS/'run-score-holes.sh').read_text(encoding='utf-8')
-        self.assertIn('NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0', script)
-        self.assertIn('tetris-playout12-b9-vnet-ff-holes.json', script)
-        self.assertNotIn('lowstack-246-249', script)
+    def test_holes_weights_double_only_the_tetris_hole_weights(self):
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-holes.json').read_text(encoding='utf-8'))
         wide = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-wide.json').read_text(encoding='utf-8'))
         doubled = {'holes', 'hole_rows', 'covered'}
@@ -48,44 +36,21 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual({k: v for k, v in data.items() if k not in ('alt_weights', 'scope')},
                          {k: v for k, v in wide.items() if k not in ('alt_weights', 'scope')})
 
-    def test_top_launcher_adds_tetris_mode_at_250_252_and_254(self):
-        script = (TOOLS/'run-score-top.sh').read_text(encoding='utf-8')
-        self.assertIn('NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0', script)
-        self.assertIn('tetris-playout12-b9-vnet-ff-top.json', script)
-        self.assertNotIn('250 254', script)
-        self.assertIn('168 172 28 2', script)
+    def test_top_weights_add_tetris_mode_at_250_252_and_254(self):
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-top.json').read_text(encoding='utf-8'))
         holes = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-holes.json').read_text(encoding='utf-8'))
         self.assertEqual(data['alt_levels'], [[29, 150], [159, 167], [174, 248], [250, 252], [254, 254]])
         self.assertEqual({k: v for k, v in data.items() if k not in ('alt_levels', 'scope')},
                          {k: v for k, v in holes.items() if k not in ('alt_levels', 'scope')})
 
-    def test_start_launcher_adds_tetris_mode_from_level_18(self):
-        script = (TOOLS/'run-score-start.sh').read_text(encoding='utf-8')
-        self.assertIn('NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0', script)
-        self.assertIn('tetris-playout12-b9-vnet-ff-start.json', script)
-        self.assertEqual(script.replace('-start', '-top').replace('levels 18-28, the 1G', 'the 1G'),
-                         (TOOLS/'run-score-top.sh').read_text(encoding='utf-8'))
+    def test_start_weights_add_tetris_mode_from_level_18(self):
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-start.json').read_text(encoding='utf-8'))
         top = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-top.json').read_text(encoding='utf-8'))
         self.assertEqual(data['alt_levels'], [[18, 150], [159, 167], [174, 248], [250, 252], [254, 254]])
         self.assertEqual({k: v for k, v in data.items() if k not in ('alt_levels', 'scope')},
                          {k: v for k, v in top.items() if k not in ('alt_levels', 'scope')})
 
-    def test_safe157_launcher_only_adds_the_risk_budget(self):
-        script = (TOOLS/'run-score-safe157.sh').read_text(encoding='utf-8')
-        self.assertIn('export NES_RISK_BUDGET=17:.9,14:.5', script)
-        start = (TOOLS/'run-score-start.sh').read_text(encoding='utf-8')
-        kept = [l for l in script.splitlines() if 'NES_RISK_BUDGET' not in l and not l.startswith('#')]
-        self.assertEqual('\n'.join(kept).replace('-safe157', '-start'),
-                         '\n'.join(l for l in start.splitlines() if not l.startswith('#')))
-
-    def test_lowtop_launcher_only_swaps_the_weights(self):
-        script = (TOOLS/'run-score-lowtop.sh').read_text(encoding='utf-8')
-        safe = (TOOLS/'run-score-safe157.sh').read_text(encoding='utf-8')
-        code = lambda text: [l for l in text.splitlines() if not l.startswith('#')]
-        self.assertEqual([l.replace('-lowtop', '-safe157').replace('ff-safe157.json', 'ff-start.json') for l in code(script)],
-                         code(safe))
+    def test_lowtop_weights_only_add_the_8_row_cap(self):
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-lowtop.json').read_text(encoding='utf-8'))
         start = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-start.json').read_text(encoding='utf-8'))
         self.assertEqual(data['alt_below_levels'], [[240, 255, 8]])
@@ -100,11 +65,7 @@ class FirstFrameTests(unittest.TestCase):
         plain = tuned_selector('dellacherie', alt_weights=str(WEIGHTS/'tetris-playout12-b9-vnet-ff-start.json'))
         self.assertEqual(plain.alt_below_levels, ())
 
-    def test_mid_launcher_only_swaps_the_weights(self):
-        script = (TOOLS/'run-score-mid.sh').read_text(encoding='utf-8')
-        low = (TOOLS/'run-score-lowtop.sh').read_text(encoding='utf-8')
-        code = lambda text: [l for l in text.splitlines() if not l.startswith('#')]
-        self.assertEqual([l.replace('-mid', '-lowtop') for l in code(script)], code(low))
+    def test_mid_weights_add_tetris_mode_at_151_153(self):
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-mid.json').read_text(encoding='utf-8'))
         lowtop = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-lowtop.json').read_text(encoding='utf-8'))
         self.assertEqual(data['alt_levels'][0], [18, 153])
@@ -120,11 +81,7 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual(sel.alt[3][0], (18, 153))
         self.assertEqual(sel.alt_below_levels, ((151, 153, 6), (240, 255, 8)))
 
-    def test_v8_launcher_only_swaps_the_weights(self):
-        script = (TOOLS/'run-score-v8.sh').read_text(encoding='utf-8')
-        mid = (TOOLS/'run-score-mid.sh').read_text(encoding='utf-8')
-        code = lambda text: [l for l in text.splitlines() if not l.startswith('#')]
-        self.assertEqual([l.replace('-v8', '-mid') for l in code(script)], code(mid))
+    def test_v8_weights_only_swap_the_value_net(self):
         data = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-v8.json').read_text(encoding='utf-8'))
         base = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-mid.json').read_text(encoding='utf-8'))
         changed = {'value_net': 'value-net-v8b.npz', 'value_lam': 40.0, 'value_levels': [[18, 153], [176, 243]], 'value_max_height': 9}
@@ -138,6 +95,17 @@ class FirstFrameTests(unittest.TestCase):
         self.assertEqual(sel.value_levels, ((18, 153), (176, 243)))
         self.assertEqual(sel.value_max_height, 9)
         self.assertEqual([w.shape for w in sel.value_net[::2]], [(256, 210), (256, 256), (1, 256)])
+
+    def test_nextbox_launcher_settings(self):
+        script = (TOOLS/'run-score-nextbox.sh').read_text(encoding='utf-8')
+        for setting in ('NES_HIDE_BOX=1', 'NES_FIRST_FRAME=1', 'NES_SPAWN_SETTLE=0',
+                        'NES_RISK_BUDGET=17:.9,14:.5', 'NUMBA_CACHE_DIR', '--late-plan retarget'):
+            self.assertIn(setting, script)
+        data = json.loads((WEIGHTS/'v8-wide154.json').read_text(encoding='utf-8'))
+        v8 = json.loads((WEIGHTS/'tetris-playout12-b9-vnet-ff-v8.json').read_text(encoding='utf-8'))
+        self.assertEqual(data['alt_levels'][0], [18, 167])
+        self.assertEqual(data['value_net'], v8['value_net'])
+        self.assertEqual(data['alt_weights'], v8['alt_weights'])
 
     def test_risk_budget_env_override(self):
         code = ('from nes_original import crash_model as c; print(c.RISK_BUDGET)')

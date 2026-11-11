@@ -5,7 +5,7 @@ applies to anyone (person or Claude) adding work.
 
 ## 1. Where new work goes
 
-Each bot has one top-level folder. Put new files next to the code they belong to.
+All bot code lives in `nes-bot/`. Put new files next to the code they belong to.
 
 | You are adding | Put it in |
 |---|---|
@@ -13,19 +13,20 @@ Each bot has one top-level folder. Put new files next to the code they belong to
 | NES rules engine changes | `nes-bot/nes/` |
 | Tuned weights for the NES bot | `nes-bot/nes_original/weights/` (one JSON per weight set, named by what it is for, e.g. `tetris-lowstack-r0.json`) |
 | Launchers, simulators, tuners, batch runners for the NES bot | `nes-bot/tools/` (add a line to `nes-bot/tools/README.md`) |
-| Modern-rules game or its bot | `modern-rules/offline/` |
-| Learned (DQN) models and training | `old-dqn/` |
-| Tests | the bot's own `tests/` folder (`nes-bot/tests/`, `modern-rules/tests/`, `old-dqn/tests/`); test file names must be unique across the repo |
-| Docs about one bot | that bot's `docs/` folder or README |
-| Small retained result files (protocols, summaries, research tables) | the bot's `evidence/<topic>/` folder |
+| Value-net data and training scripts | `nes-bot/tools/value_net/` |
+| Tests | `nes-bot/tests/` |
+| Docs about the bot | `nes-bot/docs/` or a folder README |
+| Small retained result files (protocols, summaries, research tables) | `nes-bot/evidence/<topic>/` |
 | Docs about the whole project | the root `README.md` or `docs/` |
 
 Never commit: `runs/` (game output, logs), game images (`*.nes`), large checkpoints
-(`*.pt` except the small whitelisted policies), API keys or `.env` files. `runs/` lives at the
+(`*.pt`), API keys or `.env` files. `runs/` lives at the
 repository root and stays untracked.
 
-Code that is shared between bots stays where it is and is imported (each bot folder is an
-import root). Do not copy a module into a second folder.
+**One launcher per bot version that is in use.** When a new score-bot version replaces the
+current one, its launcher replaces the old launcher in `nes-bot/tools/` (git history keeps
+the old one). Weights files stay: each one is the record of a version, and the tests check
+how each differs from the one before.
 
 ## 2. Branches
 
@@ -41,8 +42,6 @@ import root). Do not copy a module into a second folder.
 | `tests/` | tests only |
 | `docs/` | documentation only |
 | `cloud/` | running on cloud machines (Linux, headless MesenCE) |
-| `modern/` | the modern-rules game and bot |
-| `dqn/` | learned bots |
 | `repo/` | layout, tooling, CI, this file |
 
 Examples: `score/third-piece-expectimax`, `fix/keep-late-plan`, `repo/bot-folders`.
@@ -94,7 +93,7 @@ Use a separate worktree so the main checkout (and any paused runs in `runs/`) is
 switched to another branch:
 
 ```powershell
-cd C:\Users\andre\Documents\Codex\2026-10-21\ex\work\Tetris-rl-dqn
+cd C:\Users\andre\Documents\Projects\Tetris\work\Tetris-rl-dqn
 git fetch origin
 git worktree add ..\Tetris-rl-dqn-pr -b <area>/<topic> origin/main
 cd ..\Tetris-rl-dqn-pr
@@ -108,30 +107,14 @@ git worktree remove ..\Tetris-rl-dqn-pr
 After the PR is merged on GitHub, update the main checkout:
 
 ```powershell
-cd C:\Users\andre\Documents\Codex\2026-10-21\ex\work\Tetris-rl-dqn
+cd C:\Users\andre\Documents\Projects\Tetris\work\Tetris-rl-dqn
 git pull origin main
 ```
 
-## 7. Running code after the folder split
+## 7. Running code
 
-Each bot folder is an import root. The launchers and `pytest.ini` set the path themselves.
+`nes-bot/` is the import root. The launchers and `pytest.ini` set the path themselves.
 For hand-typed `python -m ...` commands, run once per Python environment, from the
-repository root: `python -m pip install -e .` (or set `PYTHONPATH`, for example
-`PYTHONPATH=nes-bot`). A frozen copy of the NES bot is just a copy of `nes-bot/`; run
-`python -m nes_original.endurance ...` from inside the copy.
-
-## 8. Updating a branch made before the folder split
-
-Edits to files that moved follow the move automatically during `git rebase origin/main`.
-Only files the branch *added* stop the rebase with a "CONFLICT (file location)" message; git
-has already put them in the new folder, so:
-
-1. Check where git put each new file. New tests in particular must go to the right bot's
-   `tests/` folder (git may guess `nes-bot/tests/` for a modern-rules test): fix with `git mv`.
-2. A new launcher copied from `run255.sh` needs the same three changes as the moved ones:
-   `ROOT=$(cd "$(dirname "$0")/../.." && pwd)`, `W="$ROOT/nes-bot/nes_original/weights"`,
-   and `export PYTHONPATH="$ROOT/nes-bot"` before `exec`.
-3. `git add -A`, then `git rebase --continue`, then run the tests.
-
-Tested on the open 50M score patch and the modern-rules port patch: both rebased with only
-these steps and their tests pass.
+repository root: `python -m pip install -e .` (or set `PYTHONPATH=nes-bot`). A frozen copy of
+the bot is just a copy of `nes-bot/`; run `python -m nes_original.endurance ...` from inside
+the copy.

@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "Tetris bots: original NES Tetris to level 255, and a modern-rules offline sprint"
+title: "nes-tetris-ai: a score bot for the original NES Tetris cartridge"
 authors:
   - family-names: Kalberer
     given-names: Andre
-repository-code: "https://github.com/AndreKalberer/Tetris-rl-dqn"
+repository-code: "https://github.com/AndreKalberer/nes-tetris-ai"
 license: MIT
 type: software

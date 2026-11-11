@@ -3,8 +3,7 @@
 This runs the original game program in **nes-py 9.0.1**, using the Nintendo USA
 image shipped inside the installed **gym-tetris 4.0.0** dependency. It does not
 use gym-tetris's TetrisEnv reset/menu helpers, which write the game's RNG RAM.
-The independent provisional simulator and its one-seed learning pilot remain
-under `nes/`; no simulator score becomes an original-game score.
+The rules engine in `nes/` is a model; no simulator score becomes an original-game score.
 
 The separate [MesenCE reference adapter](../docs/NES-ORIGINAL-REFERENCE.md) now
 supports gameplay, training, evaluation and exact replay. A development run

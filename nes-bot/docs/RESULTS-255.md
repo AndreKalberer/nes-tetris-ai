@@ -13,6 +13,9 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 
 ## Score bot (level 255, score per lap)
 
+Only the current launcher (`run-score-nextbox.sh`) and `run255.sh` are still in `nes-bot/tools/`. The older
+launchers named below are in git history, for example `git show 6d85b58:nes-bot/tools/run-score-v8.sh`.
+
 | Bot | Seed | Lines | Uncapped score | Tetrises |
 |---|---|---|---|---|
 | score50 (`run-score50.sh`) | 957 | 3,290 | 58,187,903 | 185 |

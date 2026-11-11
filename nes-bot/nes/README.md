@@ -1,52 +1,13 @@
-# NES work: first engine milestone
+# nes: the NES rules engine
 
-The modern version remains frozen at `checkpoint/modern-offline-2026-10-21`.
-This branch adds a separate, provisional Nintendo NTSC A-Type engine. See
-[RULES.md](RULES.md) for exact mechanics, reference revision and fidelity gaps.
+A Python model of Nintendo's NTSC A-Type Tetris rules: piece geometry and spawn
+orientations, gravity per level, the piece randomizer, and the legal timed inputs
+(`engine.py`, `actions.py`, `fast_paths.py`). The bot in `../nes_original/` imports these
+tables and rules; the real game runs in MesenCE. See [RULES.md](RULES.md) for the exact
+mechanics, the reference disassembly revision and the known fidelity gaps.
 
-From the project root with the existing environment:
-
-```powershell
-.\nes-bot\play-nes.ps1
-.\nes-bot\play-nes.ps1 -Bot -StartLevel 18
-```
-
-For a fresh checkout or the standalone engine ZIP, run `.\nes-bot\setup-nes.ps1` first.
-It installs the small NES-specific requirements and tests, without PyTorch or
-the modern training environment. Python 3.13 is the tested interpreter.
-
-Equivalent Python commands:
-
-```powershell
-.\.venv\Scripts\python.exe -m nes.play
-.\.venv\Scripts\python.exe -m nes.play --bot --start-level 18
-.\.venv\Scripts\python.exe -m pytest -q
-```
-
-Human controls: arrows move/soft drop, X is A (clockwise), Z is B
-(counterclockwise), P pauses, R restarts, N advances the seed, B toggles the
-untrained probe, Esc quits. The display shows score, lines, level and current
-gravity. No ROM, hold or hard drop is included. An experimental NES-specific
-learned policy is available separately; see [TRAINING.md](TRAINING.md).
-
-Watch it with `.\nes-bot\play-nes.ps1 -Checkpoint nes-bot/models/nes-seed0-best.pt -StartLevel 18`
-after installing the full CPU dependencies with modern-rules/setup.ps1.
-
-Run a small probe suite (choose a new output folder each time):
-
-```powershell
-.\.venv\Scripts\python.exe -m nes.evaluate --start-level 18 --seeds 0 1 2 --output runs/nes-repeat
-```
-
-Record a headless probe demo, with a verified input replay:
-
-```powershell
-.\.venv\Scripts\python.exe -m nes.play --start-level 18 --seed 1 --record runs/nes-demo.mp4 --screenshot runs/nes-demo.png
-```
-
-Snapshots are plain JSON. `Game.from_state(state)` restores the full game.
-`nes.evaluate.replay(row)` verifies a saved episode's input and full-state hashes.
-No checkpoint loading with pickle is needed for this new engine.
+This engine is a model, not an emulator. Results only count when played on the original
+cartridge in MesenCE and replay-verified.
 
 ## Independent routine validation
 
@@ -62,14 +23,3 @@ linked in RULES.md. The verifier checks their hashes first. It compares all 19
 geometries and the rotation/spawn/gravity tables, plus 3,000 piece draws and
 3,000 active control states against selected 6502 routines assembled in memory.
 It does not certify the complete frame scheduler, ROM, PPU or late-game behavior.
-
-## Next milestones
-
-1. Compare complete input traces with the original game in an emulator when
-   available, especially startup/spawn, top-boundary behavior and frame timing.
-2. Add timed reachable-action planning and freeze the controller/latency limits.
-3. Broaden NES-specific learner training across seeds and investigate regressions.
-4. Measure consistent level-19/29 reach rates, score, lines, and regressions on
-   reserved starts across independent training seeds.
-
-The untrained probe is an engine exercise, not completion of the NES project.
