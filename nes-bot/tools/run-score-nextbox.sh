@@ -4,7 +4,7 @@
 # at levels 18-28, the 1G levels outside the crash zones, plus 159-167, 174-175, 244-248, 250-252 and 254;
 # tetris-mode hole weights doubled; no risky crash-zone clears below a 14-row stack; 8-row stack at 240-255; tetris mode at 151-153 with a 6-row stack; value net v8b at levels 18-153 and 176-243 up to a 9-row stack) in MesenCE,
 # then fresh-replay verify it.  Usage:
-#   sh nes-bot/tools/run-score-v8.sh SEED [TARGET] [PLANNER_MASK EMULATOR_MASK]  (planner wants 3 cores: default 13 = cores 0,2,3)
+#   sh nes-bot/tools/run-score-nextbox.sh SEED [TARGET] [PLANNER_MASK EMULATOR_MASK]  (planner wants 3 cores: default 13 = cores 0,2,3)
 #     TARGET: 255 (default), 511 (rebirth, then level 255 again) or "endless" (until top-out or crash)
 # Paths: set MESEN (portable MesenCE 2.2.1 Mesen.exe), PY (emulator venv python with nes-py/torch/
 # gym-tetris) and JIT_DEPS (folder with numba) or edit the defaults below. Output: runs/run-score-v8/seed<SEED>.
