@@ -1,13 +1,13 @@
 #!/bin/sh
 # Watch several live Orcacle games at once, each in its own Mesen window at real speed, tiled in a grid.
-#   sh nes-bot/tools/watch-grid.sh [FIRST_SEED] [COUNT] [TARGET]   (defaults: 300, 4, 255)
+#   sh nes-bot/tools/watch-grid.sh [FIRST_SEED] [COUNT] [TARGET]   (defaults: 300, 4, endless = uncapped until death)
 # Game i uses seed FIRST_SEED+i and 4 cores (3 planner + 1 emulator), so 16 threads fit 4 games.
 # Each game gets its own Mesen copy (nes-late-fidelity/mesence-live<i>) with single-instance mode
 # off; otherwise a new window hands its game to the first one and that game crashes.
 # Games already running in a copy are left alone. Re-tile later with: powershell -File nes-bot/tools/tile-mesen.ps1
 # Watching only: the windows attach just after power-on, so these games fail the fresh replay check.
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-FIRST=${1:-300}; COUNT=${2:-4}; TARGET=${3:-255}
+FIRST=${1:-300}; COUNT=${2:-4}; TARGET=${3:-endless}
 BASE="$ROOT/../nes-late-fidelity/mesence-2.2.1"
 i=0
 while [ $i -lt "$COUNT" ]; do
