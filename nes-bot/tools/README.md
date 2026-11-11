@@ -15,15 +15,10 @@ Earlier score-bot launchers (score50 through score-v8) were removed in November 
 weights files are still in `nes_original/weights/`, and the launchers are in git history
 (for example `git show 6d85b58:nes-bot/tools/run-score-v8.sh`).
 
-## Simulate and tune
+## Simulate and train
 
 | Tool | What it does |
 |---|---|
 | `zone_sim.py` | Simulator with the real decision code. Plays the crash zones (levels 150–175, 246–255, both laps) or, with `--stop-lines 3300`, a whole lap; can start from a real board and piece sequence. `--playout-top` turns on playouts; `--late-table` replays measured late-plan rates. |
 | `sim_golden.py` | Record or check the simulator regression goldens (`tests/data/sim_golden.json`). |
-| `tune_zone.py` | Tune zone weights on the crash-zone simulator. |
-| `tune_low_stack_tetris.py` | Tune tetris-building weights used only while the stack is low. |
-| `value_net/gen8.py`, `label8.py`, `train8.py` | Value-net pipeline: boards from simulated games, rollout-averaged labels (16 greedy 60-piece rollouts per board), and the trainer that exports the `.npz` net (needs PyTorch). |
-| `verify_nes_reference.py` | Check the rules engine against selected original 6502 routines from the public disassembly. |
-
-Simulator tuning of the general evaluator: `python -m nes_original.tune` (tune / compare).
+| `value_net/gen8.py`, `label8.py`, `train8.py` | Value-net pipeline: boards from simulated games, rollout-averaged labels (16 greedy 60-piece rollouts per board), and the trainer that exports the `.npz` net (needs `requirements-train.txt`). |

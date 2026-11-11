@@ -58,11 +58,11 @@ Full write-up: [nes-bot/docs/NES-255.md](nes-bot/docs/NES-255.md).
 
 ## Quick start
 
-Windows, Python 3.13 and a portable [MesenCE 2.2.1](https://github.com/nesdev-org/MesenCE/releases/tag/2.2.1).
+Python 3.13 and a portable [MesenCE 2.2.1](https://github.com/nesdev-org/MesenCE/releases/tag/2.2.1).
 The original game image comes with the `gym-tetris` dependency; none is included here.
-Set up the environment as in [nes-bot/docs/NES-ORIGINAL-REFERENCE.md](nes-bot/docs/NES-ORIGINAL-REFERENCE.md)
-(`.\nes-bot\setup-nes-original.ps1`, plus `nes-bot/requirements-nes-search.txt` for the compiled
-planner), then point the launcher at it with `MESEN`, `PY` and `JIT_DEPS`:
+On Windows, `.\nes-bot\setup.ps1` builds the environment from `nes-bot/requirements.txt`; Linux
+cloud machines and the emulator settings are covered in [nes-bot/docs/SETUP.md](nes-bot/docs/SETUP.md).
+Point the launcher at them with `MESEN`, `PY` and `JIT_DEPS`:
 
 ```bash
 sh nes-bot/tools/run-score-nextbox.sh 957          # score bot: one lap to level 255, then replay verification
@@ -84,21 +84,19 @@ is not available. `tests/test_sim_regression.py` pins the simulator against
 
 | Path | What it is |
 |---|---|
-| [`nes-bot/nes_original/`](nes-bot/nes_original/README.md) | The bot: MesenCE adapter and Lua bridge, planner and evaluator (`sim.py`, `fast.py`), crash model, controller (`feedback.py`), game runner (`endurance.py`), replay and verification. Weights and value nets in `weights/`. |
+| [`nes-bot/nes_original/`](nes-bot/nes_original/README.md) | The bot: evaluator and simulator (`sim.py`), crash model, controller (`feedback.py`), MesenCE driver, game runner (`endurance.py`, `runner.py`). Weights and value nets in `weights/`. |
 | [`nes-bot/nes/`](nes-bot/nes/README.md) | The NES rules engine the bot builds on: piece geometry, gravity, randomizer, legal inputs. |
-| [`nes-bot/tools/`](nes-bot/tools/README.md) | Launchers, batch runner, crash-zone simulator, tuners, value-net training, replay viewer. |
+| [`nes-bot/tools/`](nes-bot/tools/README.md) | Launchers, batch runner, simulator, value-net training, replay viewer. |
 | `nes-bot/tests/` | Tests, including the simulator goldens. |
-| [`nes-bot/docs/`](nes-bot/docs/) | How it works, every verified game, emulator setup. |
-| `nes-bot/evidence/` | Retained protocols and research tables. |
-| [`progress.md`](progress.md) | Dated development log. |
+| [`nes-bot/docs/`](nes-bot/docs/) | How it works ([NES-255.md](nes-bot/docs/NES-255.md)), every verified game ([RESULTS-255.md](nes-bot/docs/RESULTS-255.md)), setup ([SETUP.md](nes-bot/docs/SETUP.md)). |
 
 `nes-bot/` is the import root. The launchers and `pytest.ini` set the path; for hand-typed
 `python -m ...` commands run `python -m pip install -e .` once, or set `PYTHONPATH=nes-bot`.
 Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Earlier bots (a learned DQN for modern-rules Tetris, the Offline Sprint game, and an NES
-learning pilot) were removed in November 2026. They remain in git history up to commit
-`6d85b58`.
+Earlier bots (a learned DQN for modern-rules Tetris, the Offline Sprint game, NES learning
+pilots), old research tools, the development log and old evidence files were removed in
+November 2026. They are in git history (commit `6d85b58` and before).
 
 ## Limits
 

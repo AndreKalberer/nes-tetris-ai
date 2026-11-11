@@ -6,7 +6,7 @@ import numpy as np
 
 try:
     from nes_original import sim
-except ImportError:  # numba is optional; see requirements-nes-search.txt
+except ImportError:  # numba is optional; see nes-bot/requirements.txt
     sim = None
 
 from nes.actions import ActionRules,enumerate_actions,execute

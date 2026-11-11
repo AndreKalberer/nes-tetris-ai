@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT/'tools'))
 try:
     from nes_original import sim
     import sim_golden as golden
-except ImportError:  # numba is optional; see requirements-nes-search.txt
+except ImportError:  # numba is optional; see nes-bot/requirements.txt
     sim = golden = None
 
 FULL = os.environ.get('SIM_FULL_BASELINE') == '1'

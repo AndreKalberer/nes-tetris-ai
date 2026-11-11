@@ -7,8 +7,8 @@ import unittest
 from unittest.mock import patch
 
 
-@unittest.skipUnless(importlib.util.find_spec('nes_py') and importlib.util.find_spec('torch'),
-                     'Requires isolated original-game learning environment')
+@unittest.skipUnless(importlib.util.find_spec('nes_py'),
+                     'Requires the nes-py original-game environment')
 class EvaluationDurabilityTests(unittest.TestCase):
     def setUp(self):
         base = Path.cwd()/'.pytest-work/evaluation-durability'
@@ -22,7 +22,7 @@ class EvaluationDurabilityTests(unittest.TestCase):
 
     def test_verified_cases_publish_stats_before_replay_and_results_after_each_case(self):
         from nes_original.env import OriginalGame
-        from nes_original.learn import evaluate
+        from nes_original.runner import evaluate
         test = self
         class InspectingGame(OriginalGame):
             def load_replay(self,record,**kwargs):
@@ -38,7 +38,7 @@ class EvaluationDurabilityTests(unittest.TestCase):
                     test.assertEqual([r['seed'] for r in first],[3])
                     test.assertTrue(first[0]['exact_ram_rgb_replay'])
                 return super().load_replay(record,**kwargs)
-        rows = evaluate(None,self.output,seeds=[3,7],max_frames=90,game_factory=InspectingGame)
+        rows = evaluate(self.output,seeds=[3,7],max_frames=90,game_factory=InspectingGame)
         self.assertEqual(self.read('results.json'),rows)
         for row in rows:
             self.assertEqual(row['case_state'],'verified')
@@ -47,14 +47,14 @@ class EvaluationDurabilityTests(unittest.TestCase):
 
     def test_verifier_failure_keeps_input_journal_controller_stats_and_prior_results(self):
         from nes_original.env import OriginalGame
-        from nes_original.learn import evaluate
+        from nes_original.runner import evaluate
         class FailingVerifier(OriginalGame):
             def load_replay(self,record,**kwargs):
                 if record['menu_wait_seed'] == 7:
                     raise RuntimeError('forced fresh replay failure')
                 return super().load_replay(record,**kwargs)
         with self.assertRaisesRegex(RuntimeError,'forced fresh replay failure'):
-            evaluate(None,self.output,seeds=[3,7],max_frames=90,game_factory=FailingVerifier)
+            evaluate(self.output,seeds=[3,7],max_frames=90,game_factory=FailingVerifier)
         failed = self.read('seed-7-case.json')
         self.assertEqual(failed['case_state'],'verification_failed')
         self.assertFalse(failed['exact_ram_rgb_replay'])
@@ -67,14 +67,14 @@ class EvaluationDurabilityTests(unittest.TestCase):
 
     def test_gameplay_error_and_fresh_observation_survive_verifier_failure(self):
         from nes_original.env import OriginalGame
-        from nes_original.learn import evaluate
+        from nes_original.runner import evaluate
         class FailingVerifier(OriginalGame):
             def load_replay(self,record,**kwargs):
                 raise RuntimeError('independent verifier error')
-        with patch('nes_original.learn.FeedbackController.transition',
+        with patch('nes_original.runner.FeedbackController.transition',
                    side_effect=RuntimeError('original transition error')):
             with self.assertRaisesRegex(RuntimeError,'independent verifier error'):
-                evaluate(None,self.output,seeds=[3],max_frames=90,game_factory=FailingVerifier)
+                evaluate(self.output,seeds=[3],max_frames=90,game_factory=FailingVerifier)
         failed = self.read('seed-3-case.json')
         self.assertEqual(failed['error'],'original transition error')
         self.assertIn('independent verifier error',failed['verification_error'])
@@ -87,12 +87,12 @@ class EvaluationDurabilityTests(unittest.TestCase):
 
     def test_capture_failure_keeps_pending_telemetry_and_raw_input_fallback(self):
         from nes_original.env import OriginalGame
-        from nes_original.learn import evaluate
+        from nes_original.runner import evaluate
         class FailingCapture(OriginalGame):
             def replay(self):
                 raise RuntimeError('forced capture failure')
         with self.assertRaisesRegex(RuntimeError,'forced capture failure'):
-            evaluate(None,self.output,seeds=[3],max_frames=90,game_factory=FailingCapture)
+            evaluate(self.output,seeds=[3],max_frames=90,game_factory=FailingCapture)
         failed = self.read('seed-3-case.json')
         self.assertEqual(failed['case_state'],'verification_failed')
         self.assertEqual(failed['verification_failure_phase'],'replay_capture')
