@@ -7,7 +7,7 @@
 #   sh nes-bot/tools/run-score-nextbox.sh SEED [TARGET] [PLANNER_MASK EMULATOR_MASK]  (planner wants 3 cores: default 13 = cores 0,2,3)
 #     TARGET: 255 (default), 511 (rebirth, then level 255 again) or "endless" (until top-out or crash)
 # Paths: set MESEN (portable MesenCE 2.2.1 Mesen.exe), PY (emulator venv python with nes-py/torch/
-# gym-tetris) and JIT_DEPS (folder with numba) or edit the defaults below. Output: runs/run-score-v8/seed<SEED>.
+# gym-tetris) and JIT_DEPS (folder with numba) or edit the defaults below. Output: runs/run-score-nextbox/seed<SEED>.
 # For a frozen experiment, copy nes-bot/ to a separate folder first and run from there.
 set -e
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)  # repository root
