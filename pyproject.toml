@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nes-tetris-ai"
 version = "0.0.0"
-description = "A bot that plays the original NES Tetris cartridge to level 255 and beyond, for score"
+description = "Oracle, a bot that plays the original NES Tetris cartridge to level 255 and beyond, for score"
 requires-python = ">=3.13"
 
 [tool.setuptools]
