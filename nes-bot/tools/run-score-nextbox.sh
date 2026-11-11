@@ -1,12 +1,12 @@
 #!/bin/sh
-# Play one original-game attempt with the first-frame score bot (the value-net bot with its first input on the
-# piece's spawn frame and a 9-row tetris stack; learned leaf value at levels 176-243, 2-piece playouts, tetris mode
-# at levels 18-28, the 1G levels outside the crash zones, plus 159-167, 174-175, 244-248, 250-252 and 254;
-# tetris-mode hole weights doubled; no risky crash-zone clears below a 14-row stack; 8-row stack at 240-255; tetris mode at 151-153 with a 6-row stack; value net v8b at levels 18-153 and 176-243 up to a 9-row stack) in MesenCE,
-# then fresh-replay verify it.  Usage:
+# Play one original-game attempt with the current score bot in MesenCE, then fresh-replay verify it.
+# The bot: tetris mode with a 9-row stack (6 rows at 151-158, 8 at 240-255) at levels 18-167, 174-248, 250-252 and 254;
+# 2-piece playouts with value net v8b at levels 18-153 and 176-243; first input on the spawn frame; no risky
+# crash-zone clears below a 14-row stack; Dellacherie safe play at 168-173, 249, 253 and 255; and Select hides the
+# next-piece box before clears the crash model rates safer that way (NES_HIDE_BOX=1).  Usage:
 #   sh nes-bot/tools/run-score-nextbox.sh SEED [TARGET] [PLANNER_MASK EMULATOR_MASK]  (planner wants 3 cores: default 13 = cores 0,2,3)
 #     TARGET: 255 (default), 511 (rebirth, then level 255 again) or "endless" (until top-out or crash)
-# Paths: set MESEN (portable MesenCE 2.2.1 Mesen.exe), PY (emulator venv python with nes-py/torch/
+# Paths: set MESEN (portable MesenCE 2.2.1 Mesen.exe), PY (emulator venv python with nes-py and
 # gym-tetris) and JIT_DEPS (folder with numba) or edit the defaults below. Output: runs/run-score-nextbox/seed<SEED>.
 # For a frozen experiment, copy nes-bot/ to a separate folder first and run from there.
 set -e

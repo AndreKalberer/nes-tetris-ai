@@ -3,7 +3,7 @@
 # then fresh-replay verify it.  Usage:
 #   sh nes-bot/tools/run255.sh SEED [TARGET] [PLANNER_MASK EMULATOR_MASK]
 #     TARGET: 255 (default), 511 (rebirth, then level 255 again) or "endless" (until top-out or crash)
-# Paths: set MESEN (portable MesenCE 2.2.1 Mesen.exe), PY (emulator venv python with nes-py/torch/
+# Paths: set MESEN (portable MesenCE 2.2.1 Mesen.exe), PY (emulator venv python with nes-py and
 # gym-tetris) and JIT_DEPS (folder with numba) or edit the defaults below. Output: runs/run255/seed<SEED>.
 # For a frozen experiment, copy nes-bot/ to a separate folder first and run from there.
 set -e

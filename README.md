@@ -25,12 +25,12 @@ five rebirths in a row.
 ## How it works
 
 ```mermaid
-flowchart LR
-    ROM["Original cartridge<br/>in MesenCE"] -->|"read-only RAM: board,<br/>piece, next piece, counters"| SEARCH
-    SEARCH["Move search<br/>every reachable placement of<br/>the current and next piece"] --> PLAY
-    PLAY["Playouts<br/>best 12 pairs × all 49 sequences<br/>of the next two unknown pieces"] --> CRASH
-    CRASH["Crash check<br/>exact crash-timing model rates<br/>every line clear from level 150"] --> CTRL
-    CTRL["Controller<br/>30 taps/s from the spawn frame;<br/>Down and Select per move"] -->|"controller input only"| ROM
+flowchart TD
+    ROM["Original cartridge in MesenCE"] -->|"reads the board, pieces and counters<br/>(read-only)"| SEARCH
+    SEARCH["1. Find every spot the piece can reach"] --> PLAY
+    PLAY["2-4. Score each spot and play the best ones<br/>a few pieces ahead"] --> CRASH
+    CRASH["5. Skip clears that could crash the game<br/>(from level 150)"] --> CTRL
+    CTRL["Press the buttons:<br/>up to 30 taps a second"] -->|"controller input only"| ROM
 ```
 
 1. **Reachable moves only.** From level 29 pieces fall one row per frame. The planner lists
@@ -45,9 +45,10 @@ flowchart LR
 3. **Playouts.** The 12 best (current, next) pairs are each played forward over all 49
    sequences of the two unknown pieces after them, weighted by the NES piece odds. A top-out
    scores −1000.
-4. **Learned leaf value.** At the end of each playout a small network (210-256-256-1,
-   `value-net-v8b.npz`) estimates the points still to come. It was fit to rollout-averaged
-   returns on about 730k boards and is used at levels 18-153 and 176-243 up to a 9-row stack.
+4. **A learned score guess.** At the end of each playout a small neural network
+   (`value-net-v8b.npz`) guesses how many points the board will still earn. It learned this
+   from about 730k simulated boards and is used at levels 18-153 and 176-243 while the stack
+   is at most 9 rows.
 5. **Crash avoidance.** From level 155 a line clear can make the score routine overrun into
    the frame interrupt and crash the CPU. `crash_cycle_model.py` (a port of HydrantDude's
    model as implemented in TetrisGYM) rates every clear. The bot plays the safest surviving
@@ -65,18 +66,20 @@ cloud machines and the emulator settings are covered in [nes-bot/docs/SETUP.md](
 Point the launcher at them with `MESEN`, `PY` and `JIT_DEPS`:
 
 ```bash
-sh nes-bot/tools/run-score-nextbox.sh 957          # score bot: one lap to level 255, then replay verification
-sh nes-bot/tools/run-score-nextbox.sh 957 511      # rebirth: back up to 255 on the second lap
-sh nes-bot/tools/run255.sh 19211                   # survival bot
-nes-bot\tools\watch.cmd 500                        # watch a recorded game with an uncapped-score panel
+sh nes-bot/tools/run-score-nextbox.sh 957        # score bot, one lap to level 255
+sh nes-bot/tools/run-score-nextbox.sh 957 511    # rebirth: on to 255 again
+sh nes-bot/tools/run255.sh 19211                 # survival bot
+nes-bot\tools\watch.cmd 500                      # watch a recorded game
 ```
 
-The seed is the number of frames waited on the menu, which fixes the piece sequence.
+Each game is checked by replaying it in a fresh emulator when it ends. The seed is the
+number of frames waited on the menu, which fixes the piece sequence. `watch.cmd` shows
+the uncapped score next to the game.
 Test changes in the simulator first: `python nes-bot/tools/zone_sim.py --help`
 (see [nes-bot/tools/README.md](nes-bot/tools/README.md)).
 
 **Tests**, from the repository root: `python -m pytest -q`. Emulator tests skip when MesenCE
-is not available. `tests/test_sim_regression.py` pins the simulator against
+is not available. `nes-bot/tests/test_sim_regression.py` pins the simulator against
 `nes-bot/tests/data/sim_golden.json`; after an intended behaviour change, re-record with
 `python nes-bot/tools/sim_golden.py --write`.
 

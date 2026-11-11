@@ -77,7 +77,7 @@ Update in the same PR as the change, not later:
 | When | Update |
 |---|---|
 | New verified NES games (level 255, rebirth, score) | `nes-bot/docs/RESULTS-255.md` (bot version, seed, lines, uncapped score) |
-| A new headline result is verified | the "Headline results" table in the root `README.md` |
+| A new headline result is verified | the "Results" table in the root `README.md` |
 | New file or folder in a bot | that bot folder's `README.md` table |
 | New tool | `nes-bot/tools/README.md` |
 | How the bot works changed | `nes-bot/docs/NES-255.md` |
