@@ -30,6 +30,7 @@ git clone --depth 1 --branch 2.2.1 https://github.com/nesdev-org/mesence && cd m
 sed -i 's#https://nuget-feed-nightly.avaloniaui.net/v3/index.json;##' UI/UI.csproj   # if the nightly feed is blocked
 make -j"$(nproc)"
 mkdir -p ~/mesen && cp bin/linux-x64/Release/linux-x64/publish/* ~/mesen/ && echo '{}' > ~/mesen/settings.json
+cp bin/linux-x64/Release/MesenCore.so UI/Dependencies/MesenNesDB.txt ~/mesen/
 python3 -m venv ~/venv && ~/venv/bin/pip install numpy==2.2.6 numba==0.68.0 llvmlite==0.50.0 pytest
 ```
 
