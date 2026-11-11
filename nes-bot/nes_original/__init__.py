@@ -1,4 +1,4 @@
-"""Original Nintendo NTSC A-Type through unmodified game code in nes-py.
+"""The NES Tetris bot: plays the original, unmodified game.
 
-The independent, provisional reimplementation remains in :mod:`nes`.
+The rules engine it builds on (piece shapes, gravity, legal inputs) is in :mod:`nes`.
 """

@@ -1,6 +1,6 @@
 """Validation of nes_original.crash_cycle_model against the research data.
 
-Data in evidence/nes-crash-model/: HydrantDude "Crash Dodge" and "List of crashes by
+Data in tests/data/crash-model/: HydrantDude "Crash Dodge" and "List of crashes by
 setup" sheet tabs (CSV exports, sha256 as in NES-CRASH-MAP-RESEARCH.json) and the table
 built by the research JS model (build.js, research-model-table.json).
 """
@@ -14,7 +14,7 @@ from nes_original.crash_cycle_model import (JITTER,SWITCH_OFFSETS,classify,crash
     distribution,fatal_hazard_table,pushdown_category,walk_progress)
 from nes_original.crash_model import CRASH_MAP,NEEDS_PUSHDOWN,model_crash_probability
 
-DATA = Path(__file__).resolve().parent.parent/'evidence'/'nes-crash-model'
+DATA = Path(__file__).resolve().parent/'data'/'crash-model'
 PD = {'std':'none','p':'p','P':'P','NNB':'none','C':'none'}
 
 

@@ -28,7 +28,6 @@ def main():
     parser.add_argument('--cpu-mask', type=lambda value: int(value, 0), default=32)
     parser.add_argument('--emulator-cpu-mask', type=lambda value: int(value, 0), default=128)
     parser.add_argument('--process-timeout', type=int, default=21600)
-    parser.add_argument('--policy', type=Path)
     parser.add_argument('--no-softdrop-at-1g',action='store_true',
                         help='Experimental controller timing: omit Down during ordinary1G fall')
     parser.add_argument('--no-softdrop-levels',type=int,nargs='*',default=[],
@@ -45,11 +44,10 @@ def main():
                         help='Optional separate transport for the fresh verification process')
     parser.add_argument('--stop-on-success',action='store_true',
                         help='End the development suite after the first fully verified target')
-    parser.add_argument('--selector', choices=('retained-prior', 'dellacherie', 'risk-aware',
-                        'dellacherie-alerts', 'dellacherie-observed-167', 'tuned', 'tuned-alerts', 'tuned-crash-map'),
-                        default='retained-prior')
+    parser.add_argument('--selector', choices=('tuned', 'tuned-crash-map'), default='tuned-crash-map',
+                        help='tuned-crash-map adds the crash model (needed from level 155); tuned is the bare evaluator')
     parser.add_argument('--weights', default='score_start',
-                        help='tuned selectors: weights.json from nes_original.tune, or score_start / dellacherie')
+                        help='weights.json, or score_start / dellacherie')
     parser.add_argument('--beam', type=int, default=3,
                         help='tuned selectors: proposals expanded with the visible next piece (0 = one-ply)')
     parser.add_argument('--zone-weights',
@@ -89,57 +87,29 @@ def main():
         parser.error('Pass distinct genuine menu waits0..32766')
     if args.cpu_mask <= 0 or args.emulator_cpu_mask <= 0 or args.cpu_mask & args.emulator_cpu_mask:
         parser.error('Planner and emulator require positive disjoint CPU masks')
-    if args.policy and args.selector != 'retained-prior':
-        parser.error('Choose learned policy or an experimental selector')
     if args.output.exists():
         parser.error('Use a fresh output directory; attempts are never overwritten or retried')
     sys.path.insert(0, str(args.jit_deps.resolve()))
     from nes_original.verify_batch import limit_cpu
     limit_cpu(args.cpu_mask)
-    import torch
-    torch.set_num_threads(1)
-    torch.set_num_interop_threads(1)
-    from nes_original.learn import Config, evaluate, load_policy, write_json
+    from nes_original.runner import Config, evaluate, write_json
     from nes_original.mesen import MesenGame
     nonactive_input={'neutral':0,'down':32,'left':64,'right':128}[args.nonactive_input]
     buttons={'neutral':0,'down':32,'left':64,'right':128,'a':1,'b':2}
     stall_rescue_input=buttons[args.stall_rescue_input]
     stall_rescue_fallback=buttons[args.stall_rescue_fallback]
-    model = None
-    selector = None
-    if args.selector == 'dellacherie':
-        from nes_original.dellacherie import Dellacherie
-        selector = Dellacherie()
-    elif args.selector == 'risk-aware':
-        from nes_original.robust import RiskAwareNextPiece
-        selector = RiskAwareNextPiece()
-    elif args.selector == 'dellacherie-alerts':
-        from nes_original.crash_alerts import DocumentedHazardPrioritizer
-        selector = DocumentedHazardPrioritizer()
-    elif args.selector == 'dellacherie-observed-167':
-        from nes_original.crash_alerts import Observed167TriplePrioritizer
-        selector = Observed167TriplePrioritizer()
-    elif args.selector in ('tuned', 'tuned-alerts', 'tuned-crash-map'):
-        from nes_original.sim import tuned_selector
-        selector = tuned_selector(args.weights, beam=args.beam, expect=args.expect,
-                                  zone_weights=args.zone_weights, zone_levels=tuple(args.zone_levels),
-                                  zone_ban=args.zone_ban, zone_expect=args.zone_expect,
-                                  extra_zones=[tuple(zone) for zone in args.extra_zone],
-                                  reaction=args.reaction_frames, alt_weights=args.alt_weights,
-                                  alt_levels=[(args.alt_levels[i], args.alt_levels[i+1])
-                                              for i in range(0, len(args.alt_levels), 2)] if args.alt_levels else None)
-        if args.selector == 'tuned-alerts':
-            from nes_original.crash_alerts import Observed167TriplePrioritizer
-            selector = Observed167TriplePrioritizer(base_selector=selector)
-        elif args.selector == 'tuned-crash-map':
-            from nes_original.crash_model import CrashMapPrioritizer
-            selector = CrashMapPrioritizer(base_selector=selector)
-    config = Config(prior='lookahead', tap_period=2, threads=1, reaction_frames=args.reaction_frames,
-                    late_plan=args.late_plan)
-    if args.policy:
-        model, _ = load_policy(args.policy)
-        config = model.feature_config
-        torch.set_num_threads(1)
+    from nes_original.sim import tuned_selector
+    selector = tuned_selector(args.weights, beam=args.beam, expect=args.expect,
+                              zone_weights=args.zone_weights, zone_levels=tuple(args.zone_levels),
+                              zone_ban=args.zone_ban, zone_expect=args.zone_expect,
+                              extra_zones=[tuple(zone) for zone in args.extra_zone],
+                              reaction=args.reaction_frames, alt_weights=args.alt_weights,
+                              alt_levels=[(args.alt_levels[i], args.alt_levels[i+1])
+                                          for i in range(0, len(args.alt_levels), 2)] if args.alt_levels else None)
+    if args.selector == 'tuned-crash-map':
+        from nes_original.crash_model import CrashMapPrioritizer
+        selector = CrashMapPrioritizer(base_selector=selector)
+    config = Config(tap_period=2, reaction_frames=args.reaction_frames, late_plan=args.late_plan)
     output = args.output.resolve()
     output.mkdir(parents=True)
     started = time.monotonic()
@@ -159,23 +129,21 @@ def main():
         stall_rescue_primary_frames=args.stall_rescue_primary_frames,
         verification_transport=args.verification_transport or args.transport,
         stop_on_success=args.stop_on_success,stall_grace_frames=args.stall_grace_frames,
-        weights=args.weights if args.selector.startswith('tuned') else None,
-        beam=args.beam if args.selector.startswith('tuned') else None,
-        expect=args.expect if args.selector.startswith('tuned') else None,
-        zone_weights=args.zone_weights if args.selector.startswith('tuned') else None,
+        weights=args.weights,
+        beam=args.beam,
+        expect=args.expect,
+        zone_weights=args.zone_weights,
         zone_levels=list(args.zone_levels) if args.zone_weights else None,
         zone_ban=args.zone_ban if args.zone_weights else None,
         zone_expect=args.zone_expect if args.zone_weights else None,
         extra_zones=args.extra_zone or None,
         reaction_frames=args.reaction_frames,
         late_plan=args.late_plan,
-        alt_weights=args.alt_weights if args.selector.startswith('tuned') else None,
+        alt_weights=args.alt_weights,
         alt_levels=args.alt_levels,
-        selector_parameters=selector.stats() if selector and hasattr(selector, 'stats') else None,
+        selector_parameters=selector.stats() if hasattr(selector, 'stats') else None,
         planner_cpu_mask=args.cpu_mask,
         emulator_cpu_mask=args.emulator_cpu_mask, process_timeout_seconds=args.process_timeout,
-        policy=str(args.policy.resolve()) if args.policy else None,
-        policy_sha256=hashlib.sha256(args.policy.read_bytes()).hexdigest() if args.policy else None,
         scope='Development endurance attempt, including known starts; not reserved acceptance or an RL-gain claim',
         controls='Original menus and controller input only; no RAM/RNG/ROM edits or savestate injection',
         journal='Full input prefix and cached RAM/clock every600gameplay frames; not RGB-verified until final replay',
@@ -331,10 +299,9 @@ def main():
 
     status('initializing')
     try:
-        rows = evaluate(model, output/'cases', seeds=args.seeds, runtime=True, config=config,
+        rows = evaluate(output/'cases', seeds=args.seeds, runtime=True, config=config,
                         max_frames=args.max_frames, target_level=args.target_level, game_factory=factory,
-                        context_selector=log_alert_selection if args.selector in
-                            ('dellacherie-alerts', 'dellacherie-observed-167', 'tuned-alerts', 'tuned-crash-map') else selector,
+                        context_selector=log_alert_selection if args.selector == 'tuned-crash-map' else selector,
                         no_softdrop_at_1g=args.no_softdrop_at_1g,
                         no_softdrop_levels=args.no_softdrop_levels,
                         nonactive_input=nonactive_input,
@@ -344,7 +311,7 @@ def main():
                         stop_on_success=args.stop_on_success)
         attained = any(row['success'] and row['exact_ram_rgb_replay'] for row in rows)
         status('complete', results=rows, target_verified=attained,
-               selector_statistics=selector.stats() if selector and hasattr(selector, 'stats') else None)
+               selector_statistics=selector.stats() if hasattr(selector, 'stats') else None)
         print(json.dumps(dict(target_verified=attained, results=rows)), flush=True)
     except BaseException as error:
         status('failed', error=repr(error))

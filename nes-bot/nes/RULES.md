@@ -12,10 +12,8 @@ has not been demonstrated; the bot's results come from the real cartridge in Mes
 - The code here is independently written. Only factual geometry and mechanical
   constants are represented; no ROM, disassembled game program or Nintendo art
   is distributed in this project.
-- The optional `nes-bot/tools/verify_nes_reference.py` reads SHA-256-pinned reference
-  source files supplied separately. It assembles selected routines in memory
-  using py65 1.2.0 and compares the results with this engine. It does not build
-  a game ROM. The retained report identifies source/engine/verifier hashes.
+- Selected routines were once checked against the disassembly with a py65 verifier
+  (`tools/verify_nes_reference.py`, removed in November 2026; see git history).
 
 ## Implemented mechanics
 

@@ -1,0 +1,4 @@
+# Only for training a new value net (tools/value_net/train8.py). Playing does not need PyTorch.
+-r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu

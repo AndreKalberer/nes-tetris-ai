@@ -105,7 +105,7 @@ class ObservationContractTests(unittest.TestCase):
             c.transition(before, observation(2, phase=2, orientation=19))
 
     def test_mock_evaluate_persists_and_verifies_controller_observation_failure(self):
-        from nes_original.learn import Config, evaluate
+        from nes_original.runner import Config, evaluate
         board = np.zeros((20, 10), dtype=bool)
         board[-1, :4] = True
         states = [observation(2, phase=2), observation(3, phase=5, orientation=19,
@@ -136,7 +136,7 @@ class ObservationContractTests(unittest.TestCase):
         base = Path.cwd()/'.pytest-work/feedback-observation'
         base.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=base) as folder:
-            rows = evaluate(None, folder, seeds=[33], config=Config(tap_period=2),
+            rows = evaluate(folder, seeds=[33], config=Config(tap_period=2),
                 context_selector=lambda obs, plan: 0, game_factory=factory)
             row = rows[0]
             self.assertEqual(row['termination_kind'], 'controller_error')

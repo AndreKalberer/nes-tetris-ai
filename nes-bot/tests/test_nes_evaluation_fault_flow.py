@@ -8,11 +8,11 @@ import unittest
 from unittest.mock import patch
 
 
-@unittest.skipUnless(importlib.util.find_spec('nes_py') and importlib.util.find_spec('torch'),
+@unittest.skipUnless(importlib.util.find_spec('nes_py'),
                      'Requires isolated original-game dependencies')
 class FaultFlowTests(unittest.TestCase):
     def test_expected_native_fault_keeps_error_and_continues_next_declared_case(self):
-        from nes_original.learn import evaluate
+        from nes_original.runner import evaluate
         from nes_original.mesen import SuspectedCrash
         expected = dict(type='SuspectedCrash',reason='rom_nmi_counter_stalled')
         checked = []
@@ -36,8 +36,8 @@ class FaultFlowTests(unittest.TestCase):
             def load_replay(self,record,**kwargs): checked.append((record,kwargs))
         base = Path.cwd()/'.pytest-work/fault-flow'
         base.mkdir(parents=True,exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=base) as temporary, patch('nes_original.learn.FeedbackController',Controller):
-            rows = evaluate(None,temporary,seeds=[3,7],game_factory=Game,target_level=255)
+        with tempfile.TemporaryDirectory(dir=base) as temporary, patch('nes_original.runner.FeedbackController',Controller):
+            rows = evaluate(temporary,seeds=[3,7],game_factory=Game,target_level=255)
             self.assertEqual(len(rows),2)
             self.assertTrue(rows[0]['fault_reproduced'])
             self.assertEqual(rows[0]['observed_fault'],expected)

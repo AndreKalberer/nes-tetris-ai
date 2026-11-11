@@ -26,7 +26,7 @@ class EncodingTests(unittest.TestCase):
         self.assertIn('next_orientation', names)
 
 
-@unittest.skipUnless(importlib.util.find_spec('nes_py'), 'Use requirements-nes-original.txt')
+@unittest.skipUnless(importlib.util.find_spec('nes_py'), 'Needs nes-py (nes-bot/requirements.txt)')
 class EmulatorTests(unittest.TestCase):
     def test_genuine_menu_starts_and_deterministic_reset(self):
         with OriginalGame() as game:
@@ -139,38 +139,6 @@ class EmulatorTests(unittest.TestCase):
                     game.restore(snapshot)
                     self.assertEqual(game.snapshot().inputs,snapshot.inputs)
         self.assertGreater(checked,30)
-
-    def test_runtime_handles_observed_late_game_main_loop_sampling(self):
-        # Regression: at frame 6370 of this original-game trajectory, strict
-        # predicted lock timing stopped a live game at 102 placements/40 lines.
-        # Actual Down + observed lock must continue, with exact replay intact.
-        from nes_original.run import play
-        result = play(level=18,seed=17,max_placements=105,fixed_reaction=True)
-        self.assertIsNone(result['error'])
-        self.assertEqual(result['placements'],105)
-        self.assertEqual(result['stopped_by'],'placement_limit')
-        self.assertTrue(result['exact_ram_rgb_replay'])
-        self.assertEqual(result['controller']['path_mismatches'],0)
-        self.assertGreater(result['controller']['drop_timing_adjustments'],0)
-
-    def test_runtime_discards_late_plan_and_advances_real_game(self):
-        from unittest.mock import patch
-        from nes_original.run import Controller
-        with OriginalGame() as game:
-            game.reset(start_level=18,seed=17)
-            controller = Controller()
-            frame = game.observe().frames
-            with patch('nes_original.run.time.perf_counter',side_effect=[0.0,0.2]):
-                action = controller.command(game.observe())
-            self.assertEqual(action,0)
-            self.assertFalse(controller.queue)
-            self.assertIsNone(controller.expected)
-            game.step(action)
-            while controller.idle:
-                game.step(controller.command(game.observe()))
-            self.assertEqual(controller.extra_idle_frames,13)
-            self.assertEqual(game.observe().frames,frame+13)
-            self.assertEqual(bytes(game.inputs[-13:]),bytes(13))
 
 
 if __name__ == '__main__':

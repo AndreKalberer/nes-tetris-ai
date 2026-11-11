@@ -16,8 +16,7 @@ All bot code lives in `nes-bot/`. Put new files next to the code they belong to.
 | Value-net data and training scripts | `nes-bot/tools/value_net/` |
 | Tests | `nes-bot/tests/` |
 | Docs about the bot | `nes-bot/docs/` or a folder README |
-| Small retained result files (protocols, summaries, research tables) | `nes-bot/evidence/<topic>/` |
-| Docs about the whole project | the root `README.md` or `docs/` |
+| Docs about the whole project | the root `README.md` |
 
 Never commit: `runs/` (game output, logs), game images (`*.nes`), large checkpoints
 (`*.pt`), API keys or `.env` files. `runs/` lives at the
@@ -82,7 +81,6 @@ Update in the same PR as the change, not later:
 | New file or folder in a bot | that bot folder's `README.md` table |
 | New tool | `nes-bot/tools/README.md` |
 | How the bot works changed | `nes-bot/docs/NES-255.md` |
-| Any notable step | a dated line at the top of `progress.md` |
 
 The root README keeps only verified results and the folder map; details go in the bot folders.
 
