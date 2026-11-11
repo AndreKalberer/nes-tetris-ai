@@ -1,6 +1,6 @@
 # Setup
 
-## Windows (Andre's PC)
+## Windows
 
 1. Python 3.13. From the repository root: `.\nes-bot\setup.ps1` creates `.venv-original` with
    `nes-bot/requirements.txt` and runs the tests. Add `-Train` for PyTorch (only needed to train
