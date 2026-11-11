@@ -4,6 +4,8 @@
 # Game i uses seed FIRST_SEED+i and 4 cores (3 planner + 1 emulator), so 16 threads fit 4 games.
 # Each game gets its own Mesen copy (nes-late-fidelity/mesence-live<i>) with single-instance mode
 # off; otherwise a new window hands its game to the first one and that game crashes.
+# Uncapped games save a checkpoint every 5 minutes in runs/watch-live/seed<N>: after a PC shutdown,
+# run this again with the same seeds and each game continues where it was.
 # Games already running in a copy are left alone. Re-tile later with: powershell -File nes-bot/tools/tile-mesen.ps1
 # Watching only: the windows attach just after power-on, so these games fail the fresh replay check.
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
@@ -22,9 +24,14 @@ while [ $i -lt "$COUNT" ]; do
   else
     SEED=$((FIRST+i)); C=$((i*4))
     PLANNER=$(( (1<<C) | (1<<(C+2)) | (1<<(C+3)) )); EMU=$((1<<(C+1)))
-    echo "game $n: seed $SEED, log $ROOT/../watch-live-seed$SEED.log"
-    NES_MESEN_WINDOW=1 MESEN="$COPY/Mesen.exe" nohup sh "$ROOT/nes-bot/tools/run-score-nextbox.sh" \
-      "$SEED" "$TARGET" "$PLANNER" "$EMU" > "$ROOT/../watch-live-seed$SEED.log" 2>&1 &
+    echo "game $n: seed $SEED"
+    if [ "$TARGET" = endless ]; then  # checkpoint every 5 min; rerunning this script resumes unfinished games
+      nohup sh "$ROOT/nes-bot/tools/watch-slot.sh" "$SEED" "$PLANNER" "$EMU" "$COPY/Mesen.exe" \
+        > "$ROOT/../watch-live-seed$SEED.log" 2>&1 &
+    else
+      NES_MESEN_WINDOW=1 MESEN="$COPY/Mesen.exe" nohup sh "$ROOT/nes-bot/tools/run-score-nextbox.sh" \
+        "$SEED" "$TARGET" "$PLANNER" "$EMU" > "$ROOT/../watch-live-seed$SEED.log" 2>&1 &
+    fi
   fi
   i=$n
 done
