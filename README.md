@@ -1,10 +1,10 @@
-# nes-tetris-ai
+# Orcacle
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)
 ![Emulator: MesenCE 2.2.1](https://img.shields.io/badge/emulator-MesenCE%202.2.1-orange.svg)
 
-A bot that plays Nintendo's original Tetris (USA, NTSC, A-Type) for score, from level 18 to
+Orcacle is a bot that plays Nintendo's original Tetris (USA, NTSC, A-Type) for score, from level 18 to
 level 255 and past the level counter's wrap back to 0, with **controller input only**: no ROM,
 RAM or random-number edits and no savestates in play. Every result is replayed from its
 recorded inputs in a fresh emulator and must match exactly.
@@ -15,14 +15,14 @@ All games verified in MesenCE 2.2.1 (full list: [nes-bot/docs/RESULTS-255.md](ne
 
 | Result | Games | Detail |
 |---|---|---|
-| **Score per lap (level 18 → 255)** | 9 | Average **101.04M** uncapped points, best 103,426,918. The current bot (score-nextbox, 3 games) and the one before it (score-v8, 6 games) both average 101.04M; the current one survives more often. The cartridge's own counter stops at 999,999. |
+| **Orcacle: score per lap (level 18 → 255)** | 9 | Average **101.04M** uncapped points, best 103,426,918. Orcacle's current version (score-nextbox, 3 games) and the one before it (score-v8, 6 games) both average 101.04M; the current one survives more often. The cartridge's own counter stops at 999,999. |
 | Reached level 255 (survival bot) | 20 | 3,290 lines each, 22.1–22.5M uncapped points. |
 | Rebirth: 255 → wrap to 0 → 255 again | 1 | Absolute level 511, 6,651 lines, 43,047,996 points. |
 
-Simulator, current bot: about 98.5% of laps survived over five-lap games, the target being
-five rebirths in a row.
+In the simulator Orcacle survives about 98.5% of laps over five-lap games. The goal is five
+rebirths in a row.
 
-## How it works
+## How Orcacle works
 
 ```mermaid
 flowchart TD
@@ -66,7 +66,7 @@ cloud machines and the emulator settings are covered in [nes-bot/docs/SETUP.md](
 Point the launcher at them with `MESEN`, `PY` and `JIT_DEPS`:
 
 ```bash
-sh nes-bot/tools/run-score-nextbox.sh 957        # score bot, one lap to level 255
+sh nes-bot/tools/run-score-nextbox.sh 957        # Orcacle, one lap to level 255
 sh nes-bot/tools/run-score-nextbox.sh 957 511    # rebirth: on to 255 again
 sh nes-bot/tools/run255.sh 19211                 # survival bot
 nes-bot\tools\watch.cmd 500                      # watch a recorded game

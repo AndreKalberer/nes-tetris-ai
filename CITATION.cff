@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "nes-tetris-ai: a score bot for the original NES Tetris cartridge"
+title: "Orcacle: a score bot for the original NES Tetris cartridge"
 authors:
   - family-names: Kalberer
     given-names: Andre
