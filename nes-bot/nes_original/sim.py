@@ -776,14 +776,28 @@ def _playout_total_net(root,pose,seqs,prob,level,tap_period,reaction,well,w,leng
     deep = np.zeros((MAX_CANDIDATES,9),np.int64)
     scratch = np.zeros(N_FEATURES)
     start,cleared,dead = lock(root,pose[0],pose[1],pose[2])
+    # The first playout piece only has 7 cases: place each once and reuse it (as _playout_total does).
+    first_board = np.zeros((7,20,10),np.bool_)
+    first_das = np.zeros(7,np.int64)
+    first_dead = np.zeros(7,np.bool_)
+    first_v = np.zeros(7)
+    first_part = np.zeros(7)
+    for t in range(7):
+        fb,fdas,fdead,fv,fpart = _greedy(start,SPAWNS[t],pose[3],level,tap_period,reaction,well,w,deep,scratch)
+        first_board[t] = fb
+        first_das[t] = fdas
+        first_dead[t] = fdead
+        first_v[t] = fv
+        first_part[t] = fpart
     total = 0.
     for s in range(seqs.shape[0]):
-        board = start
-        das = pose[3]
         reward = 0.
         value = death
+        t = s%7
+        board,das,dead,v,part = first_board[t],first_das[t],first_dead[t],first_v[t],first_part[t]
         for j in range(length):
-            board,das,dead,v,part = _greedy(board,seqs[s,j],das,level,tap_period,reaction,well,w,deep,scratch)
+            if j>0:
+                board,das,dead,v,part = _greedy(board,seqs[s,j],das,level,tap_period,reaction,well,w,deep,scratch)
             if dead:
                 value = death+reward
                 break
