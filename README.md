@@ -15,12 +15,12 @@ All games verified in MesenCE 2.2.1 (full list: [nes-bot/docs/RESULTS-255.md](ne
 
 | Result | Games | Detail |
 |---|---|---|
-| **Score per lap (level 18 → 255)** | 9 | Average **101.04M** uncapped points, best 103,426,918. Oracle (current version score-nextbox, 3 games) and the one before it (score-v8, 6 games) both average 101.04M; the current one survives more often. The cartridge's own counter stops at 999,999. |
+| **Oracle: score per lap (level 18 → 255)** | 9 | Average **101.04M** uncapped points, best 103,426,918. Oracle's current version (score-nextbox, 3 games) and the one before it (score-v8, 6 games) both average 101.04M; the current one survives more often. The cartridge's own counter stops at 999,999. |
 | Reached level 255 (survival bot) | 20 | 3,290 lines each, 22.1–22.5M uncapped points. |
 | Rebirth: 255 → wrap to 0 → 255 again | 1 | Absolute level 511, 6,651 lines, 43,047,996 points. |
 
-Simulator: Oracle survives about 98.5% of laps survived over five-lap games, the target being
-five rebirths in a row.
+In the simulator Oracle survives about 98.5% of laps over five-lap games. The goal is five
+rebirths in a row.
 
 ## How Oracle works
 
