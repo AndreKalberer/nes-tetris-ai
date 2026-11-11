@@ -1,4 +1,4 @@
-# Tile every live-watch Mesen window (the mesence-live<i> copies) in a grid on the main screen.
+# Tile every live-watch Mesen window (the mesence-live<i> copies) in a grid on the second monitor (the main screen if there is only one).
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @'
 using System; using System.Runtime.InteropServices;
@@ -9,7 +9,9 @@ $wins = Get-Process Mesen -ErrorAction SilentlyContinue | Where-Object { $_.Path
         Sort-Object { $_.Path }
 $n = @($wins).Count
 if ($n -eq 0) { Write-Host 'No live-watch Mesen windows found'; exit }
-$area = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+$screen = [System.Windows.Forms.Screen]::AllScreens | Where-Object { -not $_.Primary } | Select-Object -First 1
+if (-not $screen) { $screen = [System.Windows.Forms.Screen]::PrimaryScreen }
+$area = $screen.WorkingArea
 $cols = [math]::Ceiling([math]::Sqrt($n)); $rows = [math]::Ceiling($n / $cols)
 $w = [int]($area.Width / $cols); $h = [int]($area.Height / $rows)
 $i = 0
