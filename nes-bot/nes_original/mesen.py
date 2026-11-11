@@ -305,7 +305,10 @@ class MesenGame:
             raise ValueError('Pass an existing portable MesenCE executable with local settings.json')
         # Reproducibility cannot silently inherit a customized portable profile.
         settings = json.loads(self.executable.with_name('settings.json').read_text(encoding='utf-8-sig'))
-        if settings != {}:
+        # A live window needs its own Mesen copy whose profile only turns off single-instance
+        # mode, or a second window would hand its game to the first one.
+        self.window = os.environ.get('NES_MESEN_WINDOW') == '1'
+        if settings != {} and not (self.window and settings == {'Preferences': {'SingleInstance': False}}):
             raise ValueError('Use a dedicated portable profile with settings.json containing {}')
         self.rom_path = Path(rom_path) if rom_path else bundled_rom()
         self.rom_sha256 = hashlib.sha256(self.rom_path.read_bytes()).hexdigest()
@@ -328,10 +331,9 @@ class MesenGame:
         if transport not in ('file','pipe','pipe-blocking'):
             raise ValueError('Choose file, pipe or pipe-blocking IPC')
         self.transport = transport
-        # NES_MESEN_WINDOW=1: a normal, visible Mesen window at real NES speed, for
-        # watching a live game. The script then attaches a little after power-on, so
-        # the journal misses the boot frames and the fresh replay check will not match.
-        self.window = os.environ.get('NES_MESEN_WINDOW') == '1'
+        # NES_MESEN_WINDOW=1 (self.window, above): a normal, visible Mesen window at real NES
+        # speed, for watching a live game. The script then attaches a little after power-on,
+        # so the journal misses the boot frames and the fresh replay check will not match.
         self.stall_grace_frames = stall_grace_frames
         self.stall_events = []
         self._prg = None
