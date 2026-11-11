@@ -164,6 +164,8 @@ def main():
                              transport=(args.verification_transport or args.transport)
                                 if role=='verification' else args.transport)
             self.role = role
+            if role == 'verification':
+                self.window = False  # the replay check always runs in the background
             self.last_journal_length = 0
             self.journal_fault = None
 

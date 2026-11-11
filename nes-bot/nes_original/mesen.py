@@ -328,6 +328,10 @@ class MesenGame:
         if transport not in ('file','pipe','pipe-blocking'):
             raise ValueError('Choose file, pipe or pipe-blocking IPC')
         self.transport = transport
+        # NES_MESEN_WINDOW=1: a normal, visible Mesen window at real NES speed, for
+        # watching a live game. The script then attaches a little after power-on, so
+        # the journal misses the boot frames and the fresh replay check will not match.
+        self.window = os.environ.get('NES_MESEN_WINDOW') == '1'
         self.stall_grace_frames = stall_grace_frames
         self.stall_events = []
         self._prg = None
@@ -414,14 +418,18 @@ class MesenGame:
             + f'MESEN_BRIDGE_TIMEOUT={self.action_timeout}\n'
             + pipe_config
             + 'dofile(' + json.dumps(self.bridge.as_posix()) + ')\n', encoding='utf-8')
-        command = [str(self.executable), '--testRunner', f'--timeout={self.process_timeout}',
-            '--enableStdout', '--doNotSaveSettings', '--debug.scriptwindow.allowioosaccess=true',
+        mode = (['--emulation.emulationSpeed=100'] if self.window else
+            ['--testRunner', f'--timeout={self.process_timeout}', '--enableStdout'])
+        command = [str(self.executable), *mode, '--doNotSaveSettings', '--debug.scriptwindow.allowioosaccess=true',
             f'--debug.scriptwindow.scripttimeout={self.action_timeout+5}', *PROFILE,
             str(entry), str(self.rom_path.resolve())]
         (self.session_dir / 'launch.json').write_text(json.dumps(dict(command=command,
             identity=self.identity, rom_sha256=self.rom_sha256, affinity=self.affinity), indent=2), encoding='utf-8')
         self._logs = [(self.session_dir / name).open('wb') for name in ('stdout.log', 'stderr.log')]
-        if os.name=='nt':
+        if os.name=='nt' and self.window:
+            self._process = subprocess.Popen(command, cwd=self.executable.parent,
+                stdout=self._logs[0], stderr=self._logs[1], stdin=subprocess.DEVNULL)
+        elif os.name=='nt':
             startup = subprocess.STARTUPINFO()
             startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startup.wShowWindow = 0
