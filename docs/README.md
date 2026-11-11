@@ -1,7 +1,7 @@
 # Documentation
 
 Start with the [project README](../README.md). This page lists every document by topic.
-Each bot keeps its documents in its own folder: `nes-bot/`, `modern-rules/` and `old-dqn/`.
+All bot documents live under `nes-bot/`.
 
 ## NES Tetris on the original cartridge (current work)
 
@@ -16,30 +16,22 @@ Each bot keeps its documents in its own folder: `nes-bot/`, `modern-rules/` and 
 | [nes-bot/nes_original/LOOKAHEAD.md](../nes-bot/nes_original/LOOKAHEAD.md) | Faster legal controls and visible-next search (first level-29 clear). |
 | [nes-bot/nes_original/TRAINING.md](../nes-bot/nes_original/TRAINING.md) | Original-game level-29 training experiments. |
 
-## Earlier NES simulator work
+## Rules engine
 
 | Document | What it covers |
 |---|---|
-| [nes-bot/nes/README.md](../nes-bot/nes/README.md) | A separate, provisional NES A-Type simulator (`.\nes-bot\play-nes.ps1`, `.\nes-bot\play-nes.ps1 -Bot -StartLevel 18`). Not an emulator; whole-ROM parity was never demonstrated. |
-| [nes-bot/nes/RULES.md](../nes-bot/nes/RULES.md) | The simulator's mechanics, sources and fidelity gaps. |
-| [nes-bot/nes/TRAINING.md](../nes-bot/nes/TRAINING.md) | A one-seed, simulator-trained learning pilot. Not an original-ROM result. |
+| [nes-bot/nes/README.md](../nes-bot/nes/README.md) | The NES rules engine the bot builds on, and how to check it against the original 6502 routines. |
+| [nes-bot/nes/RULES.md](../nes-bot/nes/RULES.md) | The engine's mechanics, sources and fidelity gaps. |
 
 The nes-py core was later found to keep executing after a CPU JAM instruction, so late-game
 crash and rebirth results are only claimed from the MesenCE reference path.
-
-## Offline Sprint (modern-rules game)
-
-| Document | What it covers |
-|---|---|
-| [OFFLINE-SPRINT.md](../modern-rules/docs/OFFLINE-SPRINT.md) | Setup, play, the 20/20 acceptance result, the lookahead research study, endurance run, training, legacy SB3 scripts. |
-| [modern-rules/offline/RULES.md](../modern-rules/offline/RULES.md) | The frozen Offline Sprint v1 ruleset. |
-| [CHECKPOINT.md](../modern-rules/docs/CHECKPOINT.md) | The modern offline checkpoint taken before NES work, and how to restore it. |
 
 ## History and evidence
 
 - [../progress.md](../progress.md) — the dated, unedited development log (newest first). It
   stays at the repository root because some experiment scripts update it in place.
-- Retained result files, protocols and audits now sit with the bot they belong to:
-  [nes-bot/evidence/](../nes-bot/evidence/) (NES reference, crash-model research tables, learning
-  pilots), [modern-rules/evidence/](../modern-rules/evidence/) (offline acceptance, endurance) and
-  [old-dqn/evidence/](../old-dqn/evidence/) (DQN robustness study).
+- Retained result files, protocols and audits: [nes-bot/evidence/](../nes-bot/evidence/)
+  (NES reference, crash-model research tables, original-game learning experiments).
+- Earlier bots (the Offline Sprint modern-rules game and its learned DQN bot, the first
+  Stable-Baselines3 bot, and the NES simulator learning pilot) were removed in November 2026.
+  Their code, documents and evidence are in git history up to commit `6d85b58`.

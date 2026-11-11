@@ -1,6 +1,6 @@
 ## What this changes
 
-<!-- One or two sentences: the goal, and which bot folder(s) it touches (nes-bot, modern-rules, old-dqn). -->
+<!-- One or two sentences: the goal and the part of the bot it touches. -->
 
 ## Why
 
@@ -20,8 +20,8 @@
 
 - [ ] `python -m pytest -q` passes from the repository root (say which tests skipped and why)
 - [ ] If simulator behaviour changed on purpose: survival floors checked and goldens re-recorded with `python nes-bot/tools/sim_golden.py --write`
-- [ ] New files are in the right bot folder (see CONTRIBUTING.md)
-- [ ] Docs updated: the bot folder README for new files, `nes-bot/docs/RESULTS-255.md` for new verified games, the root README only for verified headline results
+- [ ] New files are in the right folder (see CONTRIBUTING.md)
+- [ ] Docs updated: the folder README for new files, `nes-bot/docs/RESULTS-255.md` for new verified games, the root README only for verified headline results
 - [ ] Overlaps with other open PRs noted below
 
 ## Overlaps and merge order

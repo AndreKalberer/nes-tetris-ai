@@ -221,11 +221,3 @@ def test_observation_hides_rng_and_state_resume_is_exact():
         game.tick(8)  # Up/hard-drop is not a gameplay action.
 
 
-def test_controller_probe_replays_all_state_and_respects_cutoff():
-    from nes.evaluate import episode,replay
-    row,game=episode(3,max_frames=2500,wall_seconds=10)
-    assert row['placements']>5 and row['replay_verified']
-    assert replay(row).signature()==game.signature()
-    assert all(entry['buttons'] & 3!=3 for entry in row['inputs'])
-    if row['alive_at_stop']:
-        assert not row['completed'] and row['stopped_by']!='natural_top_out'

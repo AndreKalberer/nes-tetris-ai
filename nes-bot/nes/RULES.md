@@ -2,8 +2,7 @@
 
 This is an independent mechanics implementation, not a ROM or an emulator.
 The target is Nintendo's USA/NTSC NES Tetris A-Type. Whole-game emulator parity
-has not yet been demonstrated. Experimental NES learning is documented in
-[TRAINING.md](TRAINING.md); model strength and ROM fidelity are separate claims.
+has not been demonstrated; the bot's results come from the real cartridge in MesenCE.
 
 ## Sources and reproducibility
 
@@ -84,21 +83,3 @@ randomizer state is omitted. Full JSON save states retain it for exact resume.
 - Level progression and line totals extend mathematically beyond the ordinary
   range instead of reproducing all byte/BCD overflow behavior. Research results
   beyond level 29 require a separately stated validation scope.
-
-## Stacking probe and evaluation scope
-
-The supplied controller is a fixed, untrained geometric heuristic. It proposes
-vertical placements, then tries to reach them through real held buttons and DAS.
-Proposals are not guaranteed reachable and the engine never teleports a piece.
-It does not use the modern learned policy or inspect the randomizer.
-
-Planning latency is recorded but currently not charged as game frames. Thus all
-probe scores are small development samples, not human-comparable results or
-claims about the original cartridge. Fix a reaction/latency and button-rate
-protocol before serious policy comparisons.
-
-Each probe stores button-state changes, full-state hashes at every lock and a
-final-state hash. Replay reconstructs the complete game including RNG/counters.
-A resource cutoff is unfinished, not a natural top-out. Retain all seeds,
-including failures. The initial draft's J-piece table error and superseded
-probes remain documented in progress history; corrected probes use a new folder.
