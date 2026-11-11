@@ -1,6 +1,6 @@
 # nes-bot
 
-Oracle, the bot that plays the original NES Tetris cartridge in MesenCE 2.2.1 with controller input
+Orcacle, the bot that plays the original NES Tetris cartridge in MesenCE 2.2.1 with controller input
 only. How it works: [docs/NES-255.md](docs/NES-255.md). Every verified game:
 [docs/RESULTS-255.md](docs/RESULTS-255.md). Setup: [docs/SETUP.md](docs/SETUP.md).
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Play one original-game attempt with Oracle, the current score bot, in MesenCE, then fresh-replay verify it.
+# Play one original-game attempt with Orcacle, the current score bot, in MesenCE, then fresh-replay verify it.
 # The bot: tetris mode with a 9-row stack (6 rows at 151-158, 8 at 240-255) at levels 18-167, 174-248, 250-252 and 254;
 # 2-piece playouts with value net v8b at levels 18-153 and 176-243; first input on the spawn frame; no risky
 # crash-zone clears below a 14-row stack; Dellacherie safe play at 168-173, 249, 253 and 255; and Select hides the

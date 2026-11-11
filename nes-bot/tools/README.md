@@ -6,7 +6,7 @@ How the bot works: [docs/NES-255.md](../docs/NES-255.md). Run every tool from th
 
 | Tool | What it does |
 |---|---|
-| `run-score-nextbox.sh SEED [255\|511\|endless]` | **Oracle, the score bot (current version).** One original-game attempt in MesenCE, then replay verification. Tetris mode with playouts and the v8b leaf value net, first input on the spawn frame, crash-zone risk budget, and the next-box option (`NES_HIDE_BOX=1`: Select hides the next box before clears the crash model rates safer that way). Needs 3 planner cores (default mask 13) and 1 emulator core, so one game per 4-core machine. |
+| `run-score-nextbox.sh SEED [255\|511\|endless]` | **Orcacle, the score bot (current version).** One original-game attempt in MesenCE, then replay verification. Tetris mode with playouts and the v8b leaf value net, first input on the spawn frame, crash-zone risk budget, and the next-box option (`NES_HIDE_BOX=1`: Select hides the next box before clears the crash model rates safer that way). Needs 3 planner cores (default mask 13) and 1 emulator core, so one game per 4-core machine. |
 | `run255.sh SEED [255\|511\|endless]` | The survival bot (v8c): Dellacherie weights with next-piece search and crash avoidance, no score play. |
 | `batch255.py` | Run a fixed list of seeds a few at a time with one launcher (status in `batch-status.json`). |
 | `watch_replay.py` / `watch.cmd [speed] [record]` | Watch a recorded game in a Mesen window with an uncapped score / level / lines panel. |

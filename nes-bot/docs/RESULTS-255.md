@@ -11,9 +11,9 @@ result exactly (`case_state: verified`). Seed = frames waited on the menu. Uncap
 |---|---|---|---|---|
 | v8b | 19211 | 511 | 6,651 | 43,047,996 |
 
-## Oracle, the score bot (level 255, score per lap)
+## Orcacle, the score bot (level 255, score per lap)
 
-Oracle is the score bot's name; each row names the version that played (score-nextbox is the current one).
+Orcacle is the score bot's name; each row names the version that played (score-nextbox is the current one).
 
 Only the current launcher (`run-score-nextbox.sh`) and `run255.sh` are still in `nes-bot/tools/`. The older
 launchers named below are in git history, for example `git show 6d85b58:nes-bot/tools/run-score-v8.sh`.
