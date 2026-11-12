@@ -223,7 +223,15 @@ def write_live(game, progress, o, alive=True, note=None):
                 laps=progress.level_cycles, abs_lines=progress.absolute_lines, points=getattr(progress, 'points', 0),
                 lap_points=getattr(progress, 'lap_points', []), board=board, frames=o.frames,
                 time_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
-    tmp = RESUME_DIR / 'live.json.tmp'; tmp.write_text(json.dumps(data)); tmp.replace(RESUME_DIR / 'live.json')
+    # Status file only: a reader holding live.json open on Windows makes replace() fail for a moment,
+    # which once stopped a whole game. Retry briefly, then skip this update rather than end the game.
+    tmp = RESUME_DIR / 'live.json.tmp'
+    for _ in range(20):
+        try:
+            tmp.write_text(json.dumps(data)); tmp.replace(RESUME_DIR / 'live.json')
+            return
+        except OSError:
+            time.sleep(.05)
 
 def write_feed(game, feed):
     # Last ~200 settled boards (one per piece) with wall-clock times, for the dashboard's live player.
