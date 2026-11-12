@@ -413,7 +413,7 @@ class FeedbackController:
         if ((self.stage == 'settle' and after.phase == 1) or
                 (self.stage in ('entry','settle') and after.over)):
             old = self.before
-            placed,cleared = after.placements-old.placements,after.lines-old.lines
+            placed,cleared = after.placements-old.placements,(after.lines-old.lines)%25600  # line counter wraps 25599 -> 0 (~lap 7.6)
             expected = int(old.board.sum()) + 4*placed - 10*cleared
             if self.above_board:
                 # Original program can write above-screen cells outside the

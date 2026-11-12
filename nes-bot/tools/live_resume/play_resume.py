@@ -100,6 +100,7 @@ def evaluate(output, *, seeds=(1001,), runtime=False, max_frames=120000, config=
     (seed,) = seeds
     game = game_factory()
     ck = _load_ckpt()
+    (RESUME_DIR / 'DONE').unlink(missing_ok=True)  # a re-opened game (e.g. after a bot bug fix) is not done
     if ck is None:
         controller = FeedbackController(fixed_reaction=not runtime, tap_period=config.tap_period,
             reaction_frames=getattr(config, 'reaction_frames', 3), late_plan=getattr(config, 'late_plan', 'replan'),
