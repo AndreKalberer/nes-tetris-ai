@@ -413,7 +413,8 @@ class FeedbackController:
         if ((self.stage == 'settle' and after.phase == 1) or
                 (self.stage in ('entry','settle') and after.over)):
             old = self.before
-            placed,cleared = after.placements-old.placements,after.lines-old.lines
+            # The NES line counter wraps 25599 -> 0 (about lap 7.6 of an uncapped game).
+            placed,cleared = after.placements-old.placements,(after.lines-old.lines)%25600
             expected = int(old.board.sum()) + 4*placed - 10*cleared
             if self.above_board:
                 # Original program can write above-screen cells outside the

@@ -296,7 +296,7 @@ class CrashMapPrioritizer(DocumentedHazardPrioritizer):
             self.counts_known = observation.placements==0 and observation.lines==0
             return
         placed = observation.placements-previous[0]
-        lines = observation.lines-previous[1]
+        lines = (observation.lines-previous[1])%25600  # NES line counter wraps 25599 -> 0
         if placed==1 and 0<=lines<=4:
             self.counts[lines] += 1
         elif placed!=0 or lines!=0:
