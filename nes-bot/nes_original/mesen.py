@@ -656,7 +656,7 @@ class MesenGame:
             # Diagnostics only (never fed to the policy): keep the unreadable picture for review.
             self._unknown_previews += 1
             bits = self._request.get('preview') or ''
-            art = '\n'.join(bits[k*16:(k+1)*16].replace('0', '.').replace('1', '#') for k in range(16))
+            art = '\n'.join(bits[k*32:(k+1)*32].replace('0', '.').replace('1', '#') for k in range(32))
             with (self.session_dir / 'preview-unknown.log').open('a', encoding='utf-8') as log:
                 log.write(f'frame {len(self.inputs)} level {int(r[0x64])} phase {int(r[0x68])}\n{art}\n\n')
         if shown < 0 or (int(r[0x68]) == 1 and self._active_age < 1):

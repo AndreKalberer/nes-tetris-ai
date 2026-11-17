@@ -170,7 +170,8 @@ def enumerate_actions(observation,rules=ActionRules(),*,board_input=False):
     after=structural(boards)
     before=structural(board[None])[0]
     preview=np.zeros(7,dtype=np.float32)
-    preview[observation.next_piece]=1
+    if observation.next_piece>=0:   # -1 = NEXT box not readable: no preview feature
+        preview[observation.next_piece]=1
     # Context is exclusively visible. The newly drawn preview after this action
     # is unknown and never simulated or read from a randomizer.
     extras=np.asarray([[observation.level/29,gravity_frames(observation.level)/48,

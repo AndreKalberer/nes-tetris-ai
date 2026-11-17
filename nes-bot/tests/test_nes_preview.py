@@ -7,16 +7,17 @@ SHAPES = {2: ('xxx', '.x.'), 7: ('xxx', '..x'), 8: ('xx.', '.xx'), 10: ('xx', 'x
           11: ('.xx', 'xx.'), 14: ('xxx', 'x..'), 18: ('xxxx',)}
 
 
-def draw(rows):
-    """Samples as the bridge produces them: 2 px stride over x=192.., y=112.. (cells are 8 px)."""
-    grid = [['0'] * 16 for _ in range(16)]
-    x0, y0 = (192, 124) if len(rows[0]) == 4 else (196, 120)   # I piece sits 4 px left / 4 px lower
+def draw(rows, body=True):
+    """32x32 samples (one per pixel of x=192..223, y=112..143) as the bridge produces them."""
+    grid = [['0'] * 32 for _ in range(32)]
+    x0, y0 = (0, 12) if len(rows[0]) == 4 else (4, 8)   # I piece sits 4 px left / 4 px lower
     for r, row in enumerate(rows):
         for c, ch in enumerate(row):
             if ch == 'x':
-                for dy in range(0, 8, 2):
-                    for dx in range(0, 8, 2):
-                        grid[(y0 + r * 8 + dy - 112) // 2][(x0 + c * 8 + dx - 192) // 2] = '1'
+                for dy in range(8):
+                    for dx in range(8):
+                        if body or (dy == 0 and dx == 0):   # body=False: only the highlight pixel
+                            grid[y0 + r * 8 + dy][x0 + c * 8 + dx] = '1'
     return ''.join(''.join(r) for r in grid)
 
 
@@ -25,21 +26,16 @@ class PreviewTests(unittest.TestCase):
         for orientation, rows in SHAPES.items():
             self.assertEqual(classify(draw(rows)), orientation)
 
-    def test_blocks_with_dark_centres_are_still_recognised(self):
-        # Level-146 palette: each block is only its edge samples (the centre reads dark).
+    def test_blocks_that_are_only_a_highlight_pixel_are_still_recognised(self):
+        # Glitched late-level palette (seen at level 148): body near-black, one lit pixel per block.
         for orientation, rows in SHAPES.items():
-            bits = list(draw(rows))
-            for i in range(16):
-                for j in range(16):
-                    if i % 4 in (1, 2) and j % 4 in (1, 2):
-                        bits[i * 16 + j] = '0'
-            self.assertEqual(classify(''.join(bits)), orientation)
+            self.assertEqual(classify(draw(rows, body=False)), orientation)
 
     def test_blank_box_is_blank_not_a_guess(self):
-        self.assertEqual(classify('0' * 256), BLANK)
+        self.assertEqual(classify('0' * 1024), BLANK)
 
     def test_garbage_is_unknown(self):
-        self.assertEqual(classify('1' * 256), UNKNOWN)
+        self.assertEqual(classify('1' * 1024), UNKNOWN)
         self.assertEqual(classify('01'), UNKNOWN)
         self.assertEqual(classify(None), UNKNOWN)
         self.assertEqual(classify(draw(('x.x', '.x.'))), UNKNOWN)

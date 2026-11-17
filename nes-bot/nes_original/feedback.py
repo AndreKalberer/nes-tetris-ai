@@ -19,7 +19,8 @@ from nes_original.planner import proposals
 # Research: NES_PLAN_LOG=path appends 'level height ms' per first plan of a piece.
 _PLAN_LOG = open(os.environ['NES_PLAN_LOG'],'a',buffering=1) if os.environ.get('NES_PLAN_LOG') else None
 
-PREVIEW_WAIT_LIMIT = 12   # frames to wait for the NEXT box picture before failing loudly
+PREVIEW_WAIT_LIMIT = 12   # frames to wait for the NEXT box picture before planning without it
+PREVIEW_RETRY_LIMIT = 3   # the same, once the box has proved unreadable (covers a 2-frame Select hide)
 
 
 class ControllerObservationError(ObservationFault):
@@ -48,6 +49,8 @@ class FeedbackController:
         self.expected_spawn = None
         self._preview_wait = 0
         self._preview_only_wait = False
+        self._preview_gave_up = False
+        self.preview_giveups = 0
         self._last_valid_next = None
         self.first_frame_spawns = 0
         # Neutral frames after the first stable active frame before the first input. Planning
@@ -291,16 +294,22 @@ class FeedbackController:
             if (isinstance(next_orientation, (int, np.integer)) and not isinstance(next_orientation, bool)
                     and int(next_orientation) == -1 and not invalid):
                 # The NEXT box is blank or still showing the old picture: wait for it, as a
-                # player would. Bounded: the box is turned back on by the same controller.
+                # player would (pose is fine, so no stability re-check: 1 frame cost only).
                 self._preview_wait += 1
-                self._preview_only_wait = True   # pose is fine: no stability re-check, 1 frame cost only
-                if self._preview_wait > PREVIEW_WAIT_LIMIT:
-                    raise ControllerObservationError(
-                        'NEXT box not readable for %d frames' % PREVIEW_WAIT_LIMIT)
-                return False
+                limit = (PREVIEW_RETRY_LIMIT if self._preview_gave_up else PREVIEW_WAIT_LIMIT)
+                if self._preview_wait <= limit:
+                    self._preview_only_wait = True
+                    return False
+                # Still nothing drawn (e.g. a glitched late-level palette makes the blocks
+                # black): a player would play without the next piece. Plan one-ply, and on
+                # later pieces wait only briefly before doing the same.
+                self._preview_gave_up = True
+                self.preview_giveups += 1
+                return True
             self._preview_wait = 0
             if self._valid_orientation(next_orientation):
                 self._last_valid_next = int(next_orientation)
+                self._preview_gave_up = False
             if not self._valid_orientation(next_orientation):
                 invalid.append(('next_orientation', repr(next_orientation)))
         if not invalid:

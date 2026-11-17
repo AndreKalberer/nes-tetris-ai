@@ -1,15 +1,17 @@
 """Read the NEXT box the way a player does: from the picture, not from RAM.
 
-The bridge samples the last completed frame over x=192..223, y=112..143 at a
-2-pixel stride (16x16 bright/dark samples). The box is a sprite image of the
-piece in its spawn pose, drawn 4 px right of the I piece's left edge, so the
-shape is found from the bounding box of the bright samples.
+The bridge sends lit/dark samples of the last completed frame over x=192..223,
+y=112..143 (32x32, one per pixel). The box shows the piece as sprite blocks of
+8x8 px in its spawn pose. A block counts as drawn if any pixel of its 8x8 cell is
+lit (at late-level palettes the body can be near-black with only a highlight at the
+cell's top-left corner). The grid is anchored at the top-left lit pixel.
 
 Measured against the original ROM: a new preview appears on screen 1 frame after
 RAM changes (ordinary play) and 2 frames after Select shows a hidden box. This
 reader only reports what is drawn, so it inherits those delays.
 """
-SAMPLES = 16
+SIDE = 32
+CELL = 8
 # Spawn orientation id of each piece in the ROM/engine tables (nes.engine.SPAWN).
 _SHAPES = {
     ('xxx', '.x.'): 2,    # T
@@ -24,21 +26,18 @@ BLANK, UNKNOWN = -1, -2
 
 
 def classify(bits):
-    """bits: 256 chars of '0'/'1'. Returns a spawn orientation id, BLANK or UNKNOWN."""
-    if not isinstance(bits, str) or len(bits) != SAMPLES * SAMPLES:
+    """bits: 1024 chars of '0'/'1'. Returns a spawn orientation id, BLANK or UNKNOWN."""
+    if not isinstance(bits, str) or len(bits) != SIDE * SIDE:
         return UNKNOWN
-    cells = [(i, j) for i in range(SAMPLES) for j in range(SAMPLES) if bits[i * SAMPLES + j] == '1']
-    if not cells:
+    lit = {(i, j) for i in range(SIDE) for j in range(SIDE) if bits[i * SIDE + j] == '1'}
+    if not lit:
         return BLANK
-    i0, i1 = min(c[0] for c in cells), max(c[0] for c in cells)
-    j0, j1 = min(c[1] for c in cells), max(c[1] for c in cells)
-    rows, cols = round((i1 - i0 + 1) / 4), round((j1 - j0 + 1) / 4)
+    i0, j0 = min(p[0] for p in lit), min(p[1] for p in lit)
+    i1, j1 = max(p[0] for p in lit), max(p[1] for p in lit)
+    rows, cols = (i1 - i0) // CELL + 1, (j1 - j0) // CELL + 1
     if not (1 <= rows <= 2 and 2 <= cols <= 4):
         return UNKNOWN
-    lit = set(cells)
-    # A block counts as drawn if any of its 4x4 samples is lit: at some levels the block's
-    # centre colour is near-black, so a centre sample alone would miss it (seen at level 146).
-    shape = tuple(''.join('x' if any((i0 + 4 * r + a, j0 + 4 * c + b) in lit
-                                     for a in range(4) for b in range(4)) else '.'
+    shape = tuple(''.join('x' if any((i0 + CELL * r + a, j0 + CELL * c + b) in lit
+                                     for a in range(CELL) for b in range(CELL)) else '.'
                           for c in range(cols)) for r in range(rows))
     return _SHAPES.get(shape, UNKNOWN)

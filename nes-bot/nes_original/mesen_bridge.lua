@@ -42,17 +42,18 @@ local function capture(command)
   publish("capture.json", string.format('{"sequence":%d,"command":%d,"pixels":%d}', sequence, command, #pixels))
 end
 
--- What a player can see in the NEXT box: bright/dark samples of the last completed
--- frame (the picture on screen), 2-pixel stride over x=192..223, y=112..143. This is
--- read from the rendered image, not from RAM, so it lags RAM by the real render delay
--- and is blank while the box is hidden with Select.
+-- What a player can see in the NEXT box: lit/dark samples of the last completed frame
+-- (the picture on screen), every pixel of x=192..223, y=112..143. Read from the rendered
+-- image, not from RAM, so it lags RAM by the real render delay and is blank while the box
+-- is hidden with Select. "Lit" = not (near) black; at glitched late-level palettes a block
+-- may be only a faint highlight pixel.
 local function previewSamples()
   local bits = {}
-  for y = 112, 142, 2 do
-    for x = 192, 222, 2 do
+  for y = 112, 143 do
+    for x = 192, 223 do
       local c = emu.getPixel(x, y)
       local sum = ((c >> 16) & 255) + ((c >> 8) & 255) + (c & 255)
-      bits[#bits + 1] = sum > 40 and "1" or "0"
+      bits[#bits + 1] = sum > 12 and "1" or "0"
     end
   end
   return table.concat(bits)
