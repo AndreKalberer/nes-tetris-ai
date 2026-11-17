@@ -47,6 +47,7 @@ class FeedbackController:
         self.first_frame = first_frame
         self.expected_spawn = None
         self._preview_wait = 0
+        self._preview_only_wait = False
         self._last_valid_next = None
         self.first_frame_spawns = 0
         # Neutral frames after the first stable active frame before the first input. Planning
@@ -281,6 +282,7 @@ class FeedbackController:
         # Guard only indices actually used by TYPE/CELLS/proposal enumeration.
         # No extra XY, geometry, RAM, CPU, or crash heuristics are introduced.
         orientation = getattr(obs, 'orientation', None)
+        self._preview_only_wait = False
         invalid = []
         if not self._valid_orientation(orientation):
             invalid.append(('orientation', repr(orientation)))
@@ -291,6 +293,7 @@ class FeedbackController:
                 # The NEXT box is blank or still showing the old picture: wait for it, as a
                 # player would. Bounded: the box is turned back on by the same controller.
                 self._preview_wait += 1
+                self._preview_only_wait = True   # pose is fine: no stability re-check, 1 frame cost only
                 if self._preview_wait > PREVIEW_WAIT_LIMIT:
                     raise ControllerObservationError(
                         'NEXT box not readable for %d frames' % PREVIEW_WAIT_LIMIT)
@@ -314,6 +317,8 @@ class FeedbackController:
         return False
 
     def _wait_for_observation(self):
+        if self._preview_only_wait:
+            return   # only the NEXT picture is pending; keep the stage so the next frame can plan
         if self.stage is None:
             # There is no preceding plan to audit; still prevent evaluate from
             # treating this invalid active flag as a settled target boundary.

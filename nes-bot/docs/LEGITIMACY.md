@@ -18,5 +18,7 @@ Rule (Andre, 2026-11-17): anything a regular player can't see on screen must not
 - The bridge still sends all 2 KB of RAM to the host process. Nothing in the Python policy path uses the hidden bytes, but this is not an OS-level isolation boundary.
 - Real-time: Mesen waits for Python while it plans, so this is paused/instrumented play, not verified real-time play. The controller charges measured planning time as neutral frames in some paths only.
 - Seed-160 result is unverified (replay did not reproduce the recorded final RAM/clock; root cause unknown).
-- Waiting for the picture costs about 1 frame per piece (2-3 after a hide). The effect on score and survival has **not** been measured; all testing was paused.
-- Replays recorded before this change use the old bridge and won't load (bridge identity changed).
+- Waiting for the picture costs 1 frame per piece (2 after a hide). The effect on score and survival has **not** been measured; all testing was paused.
+- Replays recorded before this change use the old bridge and won't load (bridge identity changed). To re-verify old games (e.g. RESULTS-255), check out tag `pre-legitimacy-bridge` (the commit before this change) and run `verify_batch.py` there.
+- `--goal-level` compares the game's level byte (0-255), so it cannot enforce a rebirth goal such as 511.
+- Simulator/launchers still assume `NES_SPAWN_SETTLE=0`; the real controller now acts 1 frame after the piece appears (2 after a Select hide). Re-run the paired sim with the matching delay before quoting 101M / 98.5%.

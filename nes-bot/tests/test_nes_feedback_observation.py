@@ -30,6 +30,13 @@ class PreviewWaitTests(unittest.TestCase):
         with self.assertRaises(ControllerObservationError):
             c._active_pose_ready(blank, preview=True)
 
+    def test_preview_only_wait_keeps_stage_so_planning_costs_one_frame(self):
+        c = FeedbackController(fixed_reaction=True, tap_period=2)
+        self.assertIsNone(c.stage)
+        self.assertEqual(c._command(observation(next_orientation=-1)), 0)
+        self.assertIsNone(c.stage)                       # not 'observation_wait' (no 2-reading re-check)
+        self.assertTrue(c._active_pose_ready(observation(next_orientation=7), preview=True))
+
     def test_readable_next_box_resets_the_wait(self):
         c = FeedbackController(fixed_reaction=True, tap_period=2)
         self.assertFalse(c._active_pose_ready(observation(next_orientation=-1), preview=True))
