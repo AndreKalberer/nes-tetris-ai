@@ -351,6 +351,7 @@ class MesenGame:
         self._nmi_stalled = self._semantic_stalled = 0
         self._active_age = 0
         self._tracker = None
+        self._unknown_previews = 0
 
     def _publish(self, text):
         self._idle_deadline = time.monotonic()+self.action_timeout
@@ -651,6 +652,13 @@ class MesenGame:
         # still the previous preview.
         t = self._tracker.values() if self._tracker is not None else dict(fall=0, das=0, soft=0, soft_points=0, previous=0)
         shown = _classify_preview(self._request.get('preview'))
+        if shown == -2 and self._unknown_previews < 20:
+            # Diagnostics only (never fed to the policy): keep the unreadable picture for review.
+            self._unknown_previews += 1
+            bits = self._request.get('preview') or ''
+            art = '\n'.join(bits[k*16:(k+1)*16].replace('0', '.').replace('1', '#') for k in range(16))
+            with (self.session_dir / 'preview-unknown.log').open('a', encoding='utf-8') as log:
+                log.write(f'frame {len(self.inputs)} level {int(r[0x64])} phase {int(r[0x68])}\n{art}\n\n')
         if shown < 0 or (int(r[0x68]) == 1 and self._active_age < 1):
             shown = -1
         return MesenObservation(board=board, x=int(r[0x60]), y=int(r[0x61]),
