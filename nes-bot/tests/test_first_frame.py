@@ -98,7 +98,7 @@ class FirstFrameTests(unittest.TestCase):
 
     def test_nextbox_launcher_settings(self):
         script = (TOOLS/'run-score-nextbox.sh').read_text(encoding='utf-8')
-        for setting in ('NES_HIDE_BOX=1', 'NES_FIRST_FRAME=1', 'NES_SPAWN_SETTLE=0',
+        for setting in ('NES_HIDE_BOX=1', 'NES_FIRST_FRAME=1', 'NES_SPAWN_SETTLE=${NES_SPAWN_SETTLE:-1}',
                         'NES_RISK_BUDGET=17:.9,14:.5', 'NUMBA_CACHE_DIR', '--late-plan retarget'):
             self.assertIn(setting, script)
         data = json.loads((WEIGHTS/'v8-wide154.json').read_text(encoding='utf-8'))

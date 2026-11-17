@@ -36,6 +36,9 @@ def classify(bits):
     if not (1 <= rows <= 2 and 2 <= cols <= 4):
         return UNKNOWN
     lit = set(cells)
-    shape = tuple(''.join('x' if (i0 + 4 * r + 1, j0 + 4 * c + 1) in lit else '.' for c in range(cols))
-                  for r in range(rows))
+    # A block counts as drawn if any of its 4x4 samples is lit: at some levels the block's
+    # centre colour is near-black, so a centre sample alone would miss it (seen at level 146).
+    shape = tuple(''.join('x' if any((i0 + 4 * r + a, j0 + 4 * c + b) in lit
+                                     for a in range(4) for b in range(4)) else '.'
+                          for c in range(cols)) for r in range(rows))
     return _SHAPES.get(shape, UNKNOWN)

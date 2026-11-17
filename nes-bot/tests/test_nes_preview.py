@@ -25,6 +25,16 @@ class PreviewTests(unittest.TestCase):
         for orientation, rows in SHAPES.items():
             self.assertEqual(classify(draw(rows)), orientation)
 
+    def test_blocks_with_dark_centres_are_still_recognised(self):
+        # Level-146 palette: each block is only its edge samples (the centre reads dark).
+        for orientation, rows in SHAPES.items():
+            bits = list(draw(rows))
+            for i in range(16):
+                for j in range(16):
+                    if i % 4 in (1, 2) and j % 4 in (1, 2):
+                        bits[i * 16 + j] = '0'
+            self.assertEqual(classify(''.join(bits)), orientation)
+
     def test_blank_box_is_blank_not_a_guess(self):
         self.assertEqual(classify('0' * 256), BLANK)
 

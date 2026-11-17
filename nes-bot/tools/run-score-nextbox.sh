@@ -1,7 +1,7 @@
 #!/bin/sh
 # Play one original-game attempt with Orcacle, the current score bot, in MesenCE, then fresh-replay verify it.
 # The bot: tetris mode with a 9-row stack (6 rows at 151-158, 8 at 240-255) at levels 18-167, 174-248, 250-252 and 254;
-# 2-piece playouts with value net v8b at levels 18-153 and 176-243; first input on the spawn frame; no risky
+# 2-piece playouts with value net v8b at levels 18-153 and 176-243; first input 1 frame after spawn (preview must be drawn); no risky
 # crash-zone clears below a 14-row stack; Dellacherie safe play at 168-173, 249, 253 and 255; and Select hides the
 # next-piece box before clears the crash model rates safer that way (NES_HIDE_BOX=1).  Usage:
 #   sh nes-bot/tools/run-score-nextbox.sh SEED [TARGET] [PLANNER_MASK EMULATOR_MASK]  (planner wants 3 cores: default 13 = cores 0,2,3)
@@ -25,9 +25,11 @@ else GOAL="--target-level $TARGET --max-frames 4000000 --process-timeout 43200";
 OUT="$ROOT/runs/run-score-nextbox"; mkdir -p "$OUT"
 cd "$ROOT"
 export PYTHONPATH="$NES"
-export NES_HIDE_BOX=1 NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=0  # act on the spawn frame; sim projections match
+# The NEXT box is read from the drawn picture, which appears 1 frame after the piece does (2 after a Select hide),
+# so the first input comes 1 frame after spawn: sim projections use NES_SPAWN_SETTLE=1 (nes-bot/docs/LEGITIMACY.md).
+export NES_HIDE_BOX=1 NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=${NES_SPAWN_SETTLE:-1}
 export NES_RISK_BUDGET=17:.9,14:.5  # no risky crash-zone clears below a 14-row stack (fixes level-157 deaths)
 # numba bakes NES_SPAWN_SETTLE into its cache, so keep this bot's cache apart from the others.
-export NUMBA_CACHE_DIR=${NUMBA_CACHE_DIR:-"$ROOT/.numba-cache/settle0"}
+export NUMBA_CACHE_DIR=${NUMBA_CACHE_DIR:-"$ROOT/.numba-cache/settle$NES_SPAWN_SETTLE"}
 export NUMBA_NUM_THREADS=${NUMBA_NUM_THREADS:-3}  # playouts run on 3 planner threads
 exec "$PY" -m nes_original.endurance --output "$OUT/seed$SEED" --mesen "$MESEN" --jit-deps "$JIT_DEPS"   --selector tuned-crash-map --weights dellacherie --beam 5 --reaction-frames 0 --late-plan retarget --alt-weights "$W/v8-wide154.json" --seeds "$SEED" $GOAL   --zone-weights "$W/nosingles-156-158.json" --zone-levels 300 300 --zone-ban 2 --zone-expect 4    --extra-zone "$W/dellacherie.json" 168 172 28 2 --extra-zone "$W/dellacherie.json" 173 173 4 2   --cpu-mask "$PLANNER" --emulator-cpu-mask "$EMULATOR" --transport pipe-blocking --verification-transport pipe   --nonactive-input neutral --stall-rescue-input a --stall-rescue-after 120 --stall-rescue-fallback right   --stall-rescue-primary-frames 8 --stall-grace-frames 2400   --no-softdrop-levels 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 250 251 252 254
