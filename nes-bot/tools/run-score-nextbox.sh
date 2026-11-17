@@ -25,9 +25,11 @@ else GOAL="--target-level $TARGET --max-frames 4000000 --process-timeout 43200";
 OUT="$ROOT/runs/run-score-nextbox"; mkdir -p "$OUT"
 cd "$ROOT"
 export PYTHONPATH="$NES"
-# The NEXT box is read from the drawn picture, which appears 1 frame after the piece does (2 after a Select hide),
-# so the first input comes 1 frame after spawn: sim projections use NES_SPAWN_SETTLE=1 (nes-bot/docs/LEGITIMACY.md).
-export NES_HIDE_BOX=1 NES_FIRST_FRAME=1 NES_SPAWN_SETTLE=${NES_SPAWN_SETTLE:-1}
+# The NEXT box is read from the drawn picture, which appears 1 frame after the piece does (2 after a Select hide).
+# Waiting for it cost a lot of survival at 1G (5-lap sim: 13/31 deaths vs 2/31), so NES_BLIND_FIRST=1 plays the
+# spawn-frame input from a one-ply plan without NEXT and replans once NEXT is drawn, continuing the same button
+# schedule. The first input is on the spawn frame again, so projections use NES_SPAWN_SETTLE=0 (docs/LEGITIMACY.md).
+export NES_HIDE_BOX=1 NES_FIRST_FRAME=1 NES_BLIND_FIRST=${NES_BLIND_FIRST:-1} NES_SPAWN_SETTLE=${NES_SPAWN_SETTLE:-0}
 export NES_RISK_BUDGET=17:.9,14:.5  # no risky crash-zone clears below a 14-row stack (fixes level-157 deaths)
 # numba bakes NES_SPAWN_SETTLE into its cache, so keep this bot's cache apart from the others.
 export NUMBA_CACHE_DIR=${NUMBA_CACHE_DIR:-"$ROOT/.numba-cache/settle$NES_SPAWN_SETTLE"}
