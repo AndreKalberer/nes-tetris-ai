@@ -163,6 +163,6 @@ def timed_paths(board, control, level, piece, rules):
                         control.soft, control.soft_points, control.previous), dtype=np.int64)
     paths, lengths, finals = _paths(np.ascontiguousarray(board, dtype=np.uint8), start,
         int(_GRAVITY[min(level, 29)]), np.asarray(targets, dtype=np.int64), np.asarray(xs, dtype=np.int64),
-        rules.reaction_frames, rules.navigation_frames, rules.rotation_period, rules.horizontal_period,
+        rules.reaction_frames-rules.start_frame, rules.navigation_frames, rules.rotation_period, rules.horizontal_period,
         _CELLS, _CW, _CCW, _ROTATE)
     return paths, lengths, finals

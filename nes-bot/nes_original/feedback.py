@@ -6,6 +6,7 @@ Target misses and prediction differences are data, never simulated transitions.
 """
 import os
 import time
+from dataclasses import replace
 
 import numpy as np
 
@@ -53,6 +54,15 @@ class FeedbackController:
         self.preview_giveups = 0
         self._last_valid_next = None
         self.first_frame_spawns = 0
+        # Blind first input (NES_BLIND_FIRST=1, needs first_frame): on the spawn frame the NEXT
+        # picture still shows the old piece, so plan one-ply from what is visible, play that plan's
+        # first input, and replan with the next piece as soon as its picture is drawn, continuing
+        # the same button schedule.
+        import os as _os_blind
+        self.blind_first = self.first_frame and _os_blind.environ.get('NES_BLIND_FIRST') == '1'
+        self._blind_now = False
+        self.blind_replan = False
+        self.blind_starts = self.blind_replans = self.blind_unresolved = 0
         # Neutral frames after the first stable active frame before the first input. Planning
         # time beyond max(1, reaction_frames) frames is charged as idle frames (one frame is the
         # normal observe-then-input step).
@@ -134,6 +144,7 @@ class FeedbackController:
     def start_plan(self,obs,plan,selected):
         if self.stage:
             raise RuntimeError('Cannot replace an in-progress target action')
+        self.blind_replan = False
         self.plan,self.selected = plan,selected
         target = plan.actions.controls[selected] if plan else obs
         self.target_x,self.target_orientation = target.x,target.orientation
@@ -214,6 +225,7 @@ class FeedbackController:
                     if self.late_plan in ('keep', 'retarget'):
                         # This frame plus idle frames: the planning time past the first frame.
                         self.start_plan(obs,plan,selected)
+                        self._mark_blind()
                         self.idle = max(0,int(np.ceil(elapsed*FPS))-2)
                         self.extra_idle_frames += 1
                         self.late_check = self.late_plan == 'retarget' and plan is not None
@@ -222,6 +234,35 @@ class FeedbackController:
                     self.extra_idle_frames += 1
                     return 0
             self.start_plan(obs,plan,selected)
+            self._mark_blind()
+        elif self.blind_replan and self.stage == 'active':
+            # The plan so far was made without the next piece. Once its picture is drawn, plan
+            # again from the current pose with the schedule continuing where it is.
+            if self._valid_orientation(getattr(obs,'next_orientation',None)):
+                self.blind_replan = self.late_check = False
+                self.blind_replans += 1
+                start = time.perf_counter()
+                rules = replace(self.rules,start_frame=self.elapsed)
+                fresh = proposals(obs,rules,board_input=True)
+                if fresh is not None:
+                    selected = self._select(obs,fresh)
+                    self.plan,self.selected = fresh,selected
+                    target = fresh.actions.controls[selected]
+                    self.target_x,self.target_orientation = target.x,target.orientation
+                    self.before = obs
+                elapsed = time.perf_counter()-start
+                self.plans += 1
+                self.planning_seconds += elapsed
+                if elapsed > 1/FPS and not self.fixed_reaction:
+                    # Late like any over-budget plan: idle, then check the board is still reachable.
+                    self.overruns += 1
+                    self.idle = max(0,int(np.ceil(elapsed*FPS))-2)
+                    self.extra_idle_frames += 1
+                    self.late_check = self.late_plan == 'retarget' and fresh is not None
+                    return 0
+            elif self.elapsed >= PREVIEW_WAIT_LIMIT:
+                self.blind_replan = False   # picture never came: finish the one-ply plan
+                self.blind_unresolved += 1
         elif self.late_check and self.stage == 'active':
             # First input frame of a late plan: the piece has fallen meanwhile. Keep the chosen
             # board if the current pose still reaches it, else choose again from here.
@@ -276,6 +317,12 @@ class FeedbackController:
             return self._drop_button(obs)
         return self.horizontal|rotation
 
+    def _mark_blind(self):
+        if self._blind_now:
+            self._blind_now = False
+            self.blind_replan = True
+            self.blind_starts += 1
+
     @staticmethod
     def _valid_orientation(value):
         return (isinstance(value, (int, np.integer)) and not isinstance(value, (bool, np.bool_))
@@ -295,6 +342,9 @@ class FeedbackController:
                     and int(next_orientation) == -1 and not invalid):
                 # The NEXT box is blank or still showing the old picture: wait for it, as a
                 # player would (pose is fine, so no stability re-check: 1 frame cost only).
+                if self.blind_first and self._preview_wait == 0 and not self._preview_gave_up:
+                    self._blind_now = True   # spawn frame: plan without the next piece now
+                    return True
                 self._preview_wait += 1
                 limit = (PREVIEW_RETRY_LIMIT if self._preview_gave_up else PREVIEW_WAIT_LIMIT)
                 if self._preview_wait <= limit:
@@ -307,6 +357,7 @@ class FeedbackController:
                 self.preview_giveups += 1
                 return True
             self._preview_wait = 0
+            self._blind_now = False
             if self._valid_orientation(next_orientation):
                 self._last_valid_next = int(next_orientation)
                 self._preview_gave_up = False
@@ -469,7 +520,9 @@ class FeedbackController:
             piece_type_differences=self.piece_type_differences,
             action_interface='Native feedback targets; approximate proposal features',
             reaction_frames=self.reaction_frames,late_plan=self.late_plan,
-            late_checks=self.late_checks,late_replans=self.late_replans,hide_box=self.hide_box,hide_presses=self.hide_presses,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
+            late_checks=self.late_checks,late_replans=self.late_replans,
+            preview_giveups=self.preview_giveups,blind_first=self.blind_first,blind_starts=self.blind_starts,
+            blind_replans=self.blind_replans,blind_unresolved=self.blind_unresolved,hide_box=self.hide_box,hide_presses=self.hide_presses,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
             horizontal_pulse_period=self.tap_period,rotation_period=4,
             no_softdrop_at_1g=self.no_softdrop_at_1g,
             no_softdrop_levels=sorted(self.no_softdrop_levels),
