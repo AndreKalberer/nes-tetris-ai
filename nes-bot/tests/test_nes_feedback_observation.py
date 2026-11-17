@@ -20,6 +20,23 @@ def observation(frame=1, **changes):
     return SimpleNamespace(**values)
 
 
+class PreviewWaitTests(unittest.TestCase):
+    def test_unreadable_next_box_waits_then_fails_loudly(self):
+        from nes_original.feedback import PREVIEW_WAIT_LIMIT
+        c = FeedbackController(fixed_reaction=True, tap_period=2)
+        blank = observation(next_orientation=-1)
+        for _ in range(PREVIEW_WAIT_LIMIT):
+            self.assertFalse(c._active_pose_ready(blank, preview=True))
+        with self.assertRaises(ControllerObservationError):
+            c._active_pose_ready(blank, preview=True)
+
+    def test_readable_next_box_resets_the_wait(self):
+        c = FeedbackController(fixed_reaction=True, tap_period=2)
+        self.assertFalse(c._active_pose_ready(observation(next_orientation=-1), preview=True))
+        self.assertTrue(c._active_pose_ready(observation(next_orientation=7), preview=True))
+        self.assertEqual(c._preview_wait, 0)
+
+
 class ObservationContractTests(unittest.TestCase):
     def entry_controller(self):
         c = FeedbackController(fixed_reaction=True, tap_period=2,

@@ -85,6 +85,10 @@ def main():
         parser.error('Use target level19+ (256+ = absolute levels across rebirths) and a positive frame budget')
     if not args.seeds or len(args.seeds) != len(set(args.seeds)) or any(not 0 <= s <= 32766 for s in args.seeds):
         parser.error('Pass distinct genuine menu waits0..32766')
+    from nes_original.menu_cycle import MENU_CYCLE, aliased
+    if aliased(args.seeds):
+        print(f'WARNING: waits >= {MENU_CYCLE} repeat the menu phase of wait % {MENU_CYCLE}; '
+              f'choose waits with nes_original.menu_cycle.uniform_menu_waits for an unbiased sample', file=sys.stderr)
     if args.cpu_mask <= 0 or args.emulator_cpu_mask <= 0 or args.cpu_mask & args.emulator_cpu_mask:
         parser.error('Planner and emulator require positive disjoint CPU masks')
     if args.output.exists():

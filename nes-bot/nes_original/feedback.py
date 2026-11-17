@@ -19,6 +19,9 @@ from nes_original.planner import proposals
 # Research: NES_PLAN_LOG=path appends 'level height ms' per first plan of a piece.
 _PLAN_LOG = open(os.environ['NES_PLAN_LOG'],'a',buffering=1) if os.environ.get('NES_PLAN_LOG') else None
 
+PREVIEW_WAIT_LIMIT = 12   # frames to wait for the NEXT box picture before failing loudly
+
+
 class ControllerObservationError(ObservationFault):
     """Public observation cannot satisfy this controller's pose contract.
 
@@ -43,6 +46,8 @@ class FeedbackController:
             first_frame = os.environ.get('NES_FIRST_FRAME') == '1'
         self.first_frame = first_frame
         self.expected_spawn = None
+        self._preview_wait = 0
+        self._last_valid_next = None
         self.first_frame_spawns = 0
         # Neutral frames after the first stable active frame before the first input. Planning
         # time beyond max(1, reaction_frames) frames is charged as idle frames (one frame is the
@@ -281,6 +286,18 @@ class FeedbackController:
             invalid.append(('orientation', repr(orientation)))
         if preview:
             next_orientation = getattr(obs, 'next_orientation', None)
+            if (isinstance(next_orientation, (int, np.integer)) and not isinstance(next_orientation, bool)
+                    and int(next_orientation) == -1 and not invalid):
+                # The NEXT box is blank or still showing the old picture: wait for it, as a
+                # player would. Bounded: the box is turned back on by the same controller.
+                self._preview_wait += 1
+                if self._preview_wait > PREVIEW_WAIT_LIMIT:
+                    raise ControllerObservationError(
+                        'NEXT box not readable for %d frames' % PREVIEW_WAIT_LIMIT)
+                return False
+            self._preview_wait = 0
+            if self._valid_orientation(next_orientation):
+                self._last_valid_next = int(next_orientation)
             if not self._valid_orientation(next_orientation):
                 invalid.append(('next_orientation', repr(next_orientation)))
         if not invalid:
@@ -383,7 +400,8 @@ class FeedbackController:
             if after.phase != 2:
                 raise AssertionError('Original game left active control without lock phase')
             self.stage = 'entry'
-            self.expected_spawn = before.next_orientation
+            self.expected_spawn = (before.next_orientation if before.next_orientation >= 0
+                                   else self._last_valid_next)
             if (after.x,after.orientation) != (self.target_x,self.target_orientation):
                 self.target_misses += 1
             if not self._valid_orientation(after.orientation):
