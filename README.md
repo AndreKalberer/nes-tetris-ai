@@ -15,11 +15,13 @@ All games verified in MesenCE 2.2.1 (full list: [nes-bot/docs/RESULTS-255.md](ne
 
 | Result | Games | Detail |
 |---|---|---|
-| **Orcacle: score per lap (level 18 → 255)** | 9 | Average **101.04M** uncapped points, best 103,426,918. Orcacle's current version (score-nextbox, 3 games) and the one before it (score-v8, 6 games) both average 101.04M; the current one survives more often. The cartridge's own counter stops at 999,999. |
+| **Orcacle: score per lap (level 18 → 255)**, pre-legitimacy | 9 | Average **101.04M** uncapped points, best 103,426,918. Orcacle's current version (score-nextbox, 3 games) and the one before it (score-v8, 6 games) both average 101.04M; the current one survives more often. The cartridge's own counter stops at 999,999. These games read NEXT and timers from RAM, before the [legitimacy fixes](nes-bot/docs/LEGITIMACY.md). |
 | Reached level 255 (survival bot) | 20 | 3,290 lines each, 22.1–22.5M uncapped points. |
 | Rebirth: 255 → wrap to 0 → 255 again | 1 | Absolute level 511, 6,651 lines, 43,047,996 points. |
 
-In the simulator Orcacle survives about 98.5% of laps over five-lap games. The goal is five
+In the simulator Orcacle survived about 98.5% of laps over five-lap games before the legitimacy fixes (NEXT read from RAM).
+With the screen-only NEXT box and the spawn-frame move, a 5-lap sim on 31 seeds had 5 deaths (vs 2 for the old bot)
+at about 88M/lap; see [LEGITIMACY.md](nes-bot/docs/LEGITIMACY.md). The goal is five
 rebirths in a row.
 
 ## How Orcacle works
