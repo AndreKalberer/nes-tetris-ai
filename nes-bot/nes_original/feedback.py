@@ -133,6 +133,8 @@ class FeedbackController:
         self.planning_seconds = 0.0
         self.late_check = False
         self.late_checks = self.late_replans = 0
+        self.miss_log = []   # first 200 target misses with what happened to that piece
+        self._trace = []
         self._invalid_pose_key = self._invalid_pose_frame = None
         self._observation_wait_orientation = None
 
@@ -149,6 +151,7 @@ class FeedbackController:
         target = plan.actions.controls[selected] if plan else obs
         self.target_x,self.target_orientation = target.x,target.orientation
         self.before = obs
+        self._trace.append(('plan',int(obs.x),int(obs.y),int(obs.orientation),int(target.x),int(target.orientation)))
         self.elapsed = self.horizontal = 0
         self.dropping = plan is None
         self.stage = 'active'
@@ -247,9 +250,14 @@ class FeedbackController:
                 if fresh is not None:
                     selected = self._select(obs,fresh)
                     self.plan,self.selected = fresh,selected
+                    # The blind plan may have aimed at the spawn pose and started dropping; the new
+                    # target has to be navigated to (dropping on would land the piece at spawn).
+                    self.dropping = False
                     target = fresh.actions.controls[selected]
                     self.target_x,self.target_orientation = target.x,target.orientation
                     self.before = obs
+                    self._trace.append(('replan',self.elapsed,bool(self.dropping),int(obs.x),int(obs.y),
+                                        int(obs.orientation),int(target.x),int(target.orientation)))
                 elapsed = time.perf_counter()-start
                 self.plans += 1
                 self.planning_seconds += elapsed
@@ -259,6 +267,7 @@ class FeedbackController:
                     self.idle = max(0,int(np.ceil(elapsed*FPS))-2)
                     self.extra_idle_frames += 1
                     self.late_check = self.late_plan == 'retarget' and fresh is not None
+                    self._trace.append(('replan_overrun',self.idle))
                     return 0
             elif self.elapsed >= PREVIEW_WAIT_LIMIT:
                 self.blind_replan = False   # picture never came: finish the one-ply plan
@@ -268,6 +277,7 @@ class FeedbackController:
             # board if the current pose still reaches it, else choose again from here.
             self.late_check = False
             self.late_checks += 1
+            self._trace.append(('late',int(obs.x),int(obs.y),int(obs.orientation)))
             start = time.perf_counter()
             target = self.plan.actions.boards[self.selected] != 0
             fresh = proposals(obs,self.rules,board_input=True)
@@ -469,6 +479,15 @@ class FeedbackController:
                                    else self._last_valid_next)
             if (after.x,after.orientation) != (self.target_x,self.target_orientation):
                 self.target_misses += 1
+                if len(self.miss_log) < 200:
+                    self.miss_log.append(dict(level=int(after.level),placements=int(after.placements),
+                        landed=(int(after.x),int(after.orientation)),target=(int(self.target_x),int(self.target_orientation)),
+                        elapsed=self.elapsed,dropping=bool(self.dropping),trace=list(self._trace)))
+                    if os.environ.get('NES_MISS_LOG'):
+                        import json
+                        with open(os.environ['NES_MISS_LOG'],'a') as f:
+                            f.write(json.dumps(self.miss_log[-1])+'\n')
+            self._trace = []
             if not self._valid_orientation(after.orientation):
                 raise ControllerObservationError('Invalid locked orientation: '+repr(after.orientation))
             self.above_board = any(after.y+dy<0 for dx,dy in CELLS[after.orientation])
@@ -522,7 +541,7 @@ class FeedbackController:
             reaction_frames=self.reaction_frames,late_plan=self.late_plan,
             late_checks=self.late_checks,late_replans=self.late_replans,
             preview_giveups=self.preview_giveups,blind_first=self.blind_first,blind_starts=self.blind_starts,
-            blind_replans=self.blind_replans,blind_unresolved=self.blind_unresolved,hide_box=self.hide_box,hide_presses=self.hide_presses,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
+            blind_replans=self.blind_replans,blind_unresolved=self.blind_unresolved,miss_log=self.miss_log,hide_box=self.hide_box,hide_presses=self.hide_presses,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
             horizontal_pulse_period=self.tap_period,rotation_period=4,
             no_softdrop_at_1g=self.no_softdrop_at_1g,
             no_softdrop_levels=sorted(self.no_softdrop_levels),

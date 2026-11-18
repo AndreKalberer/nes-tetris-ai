@@ -10,10 +10,12 @@ from nes_original.feedback import FeedbackController
 from nes_original.timers import game_bits
 
 
-def play(pieces, seed, hidden_frames, level=19):
+def play(pieces, seed, hidden_frames, level=19, selector=None):
     """Drive the controller on the Python engine; NEXT reads -1 for the first `hidden_frames` active frames."""
     with patch.dict(os.environ, NES_FIRST_FRAME='1', NES_BLIND_FIRST='1'):
         c = FeedbackController(fixed_reaction=True, tap_period=2, reaction_frames=0, late_plan='retarget')
+    if selector:
+        c.context_selector = selector
     g = Game(seed, Rules(start_level=18))
     g.level = level
     age, misses, locks = 0, 0, 0
@@ -51,6 +53,21 @@ class BlindFirstTests(unittest.TestCase):
                 self.assertEqual(misses, 0)
                 self.assertEqual(c.blind_starts, 40)
                 self.assertEqual(c.blind_replans, 40)
+
+    def test_blind_spawn_pose_then_move_still_lands_on_target(self):
+        # Real game seed 957: a blind plan that keeps the spawn pose starts dropping on frame 0; the
+        # replan must still steer to its own target (97 of 8,230 pieces landed at spawn before the fix).
+        def selector(obs, plan):
+            controls = plan.actions.controls
+            if obs.next_orientation < 0:   # blind: stay at spawn
+                return next(i for i, k in enumerate(controls) if (k.x, k.orientation) == (obs.x, obs.orientation))
+            return max(range(len(controls)), key=lambda i: abs(controls[i].x-obs.x))
+        for hidden in (1, 2):
+            with self.subTest(hidden=hidden):
+                c, locks, misses = play(20, seed=3, hidden_frames=hidden, selector=selector)
+                self.assertEqual(locks, 20)
+                self.assertEqual(misses, 0)
+                self.assertEqual(c.target_misses, 0)
 
     def test_fast_and_python_paths_agree_with_an_offset(self):
         from nes import actions
