@@ -23,7 +23,15 @@ import numpy as np
 
 from nes_original.env import Buttons, GAMEPLAY_MASK, Observation, ROM_SHA256, bcd, bundled_rom
 from nes_original.preview import classify as _classify_preview
-from nes_original.timers import TimerTracker
+from nes_original.timers import TimerTracker, game_bits
+from nes.engine import Control, control_frame
+
+# NES_PICTURE_DELAY=1 (Andre 2026-11-18): the policy only sees RAM that matches the picture on screen. The
+# picture shows what RAM held one frame earlier (audit 2: 2,877/2,877 active frames), so observations are built
+# from the previous poll's RAM. The current frame of the falling piece is then predicted from that state plus
+# the bot's own last button press, with the ROM's frame rules (nes.engine.control_frame), as a player knows
+# what they just pressed. Nothing newer than the picture reaches the policy.
+PICTURE_DELAY = os.environ.get('NES_PICTURE_DELAY', '0') == '1'
 
 PROTOCOL = 'original-ntsc-a-mesence-input-replay-v1'
 PROFILE = ('--nes.region=Ntsc', '--nes.rampoweronstate=AllZeros',
@@ -43,6 +51,9 @@ class SuspectedCrash(MesenFault):
 @dataclass(frozen=True)
 class MesenObservation(Observation):
     input_pipeline: int = 0
+    # Delay mode: the frame on screen is a clean spawn (x 5, y 0, fall 0), so the predicted present
+    # (one frame later) is the piece's first frame of control. None = judge the observation itself.
+    fresh_spawn: object = None
 
 
 class _WindowsPipes:
@@ -352,6 +363,13 @@ class MesenGame:
         self._active_age = 0
         self._tracker = None
         self._unknown_previews = 0
+        self.picture_delay = PICTURE_DELAY
+        self._shown = None            # RAM matching the picture (previous poll), delay mode only
+        self._shown_placements = 0
+        self._pending_track = None
+        self._last_buttons = 0
+        self._predicted = None
+        self.predictions = self.prediction_misses = 0
 
     def _publish(self, text):
         self._idle_deadline = time.monotonic()+self.action_timeout
@@ -485,10 +503,31 @@ class MesenGame:
         self.inputs.append(int(buttons))
         if self._tracker is not None:
             # Timers are rebuilt from our own inputs and the visible board/piece/level only.
-            self._tracker.step(dict(active=int(before[0x68]) == 1,
+            seen = dict(active=int(before[0x68]) == 1,
                 board=(before[0x400:0x4C8].reshape(20, 10) != 0xEF), x=int(before[0x60]),
-                y=int(before[0x61]), orientation=int(before[0x62]), level=int(before[0x64])),
-                int(buttons), int(self._ram[0x68]))
+                y=int(before[0x61]), orientation=int(before[0x62]), level=int(before[0x64]))
+            if not self.picture_delay:
+                self._tracker.step(seen, int(buttons), int(self._ram[0x68]))
+            else:
+                # One frame behind: afterwards the tracker holds the timers of the frame now on screen (before).
+                if self._pending_track is not None:
+                    self._tracker.step(*self._pending_track)
+                self._pending_track = (seen, int(buttons), int(self._ram[0x68]))
+        if self.picture_delay:
+            old = self._shown
+            if old is not None and int(old[0x68]) == 2 and int(before[0x68]) == 3:
+                self._shown_placements += 1
+            self._shown, self._last_buttons = before, int(buttons)
+            if self._predicted is not None and int(before[0x68]) == 1:
+                self.predictions += 1
+                got = (int(before[0x60]), int(before[0x61]), int(before[0x62]))
+                if self._predicted != got:
+                    self.prediction_misses += 1
+                    if os.environ.get('NES_PREDICTION_LOG'):
+                        with open(os.environ['NES_PREDICTION_LOG'], 'a') as log:
+                            log.write(json.dumps(dict(frame=len(self.inputs), level=int(before[0x64]),
+                                predicted=self._predicted, got=got)) + '\n')
+            self._predicted = None
         # Frames the active piece has been on screen (a player sees it appear and counts).
         self._active_age = self._active_age+1 if int(self._ram[0x68]) == 1 and int(before[0x68]) == 1 else 0
         if self.started:
@@ -587,6 +626,7 @@ class MesenGame:
         self._nmi_stalled = self._semantic_stalled = 0
         self._active_age = 0
         self._tracker = None
+        self._shown, self._pending_track, self._predicted, self._last_buttons = None, None, None, 0
         self.stall_events = []
         self.start_level, self.seed = start_level, seed
         self._launch()
@@ -624,6 +664,9 @@ class MesenGame:
         self._tracker = None
         self._step_raw(0)
         self._tracker = TimerTracker()   # state of the ROM timers at the first active frame
+        if self.picture_delay:
+            self._step_raw(0)            # now the picture shows that frame, with these timers
+            self._shown_placements = self.placements
         return self.observe()
 
     @property
@@ -632,7 +675,8 @@ class MesenGame:
 
     def step(self, buttons=0):
         buttons = int(buttons)
-        if not self.started or self.over:
+        if not self.started or (self.over and not (self.picture_delay and self._shown is not None
+                                                     and int(self._shown[0x68]) != 10)):
             raise RuntimeError('Reset before stepping, and do not step a finished game')
         # Select is allowed for the next-box option (NES_HIDE_BOX); it only toggles the preview.
         if buttons < 0 or buttons & ~(GAMEPLAY_MASK | int(Buttons.SELECT)):
@@ -644,6 +688,8 @@ class MesenGame:
 
     def observe(self):
         if not self.started: raise RuntimeError('Reset before observing gameplay')
+        if self.picture_delay:
+            return self._observe_shown()
         r = self._ram
         board = (r[0x400:0x4C8].reshape(20, 10) != 0xEF).copy()
         board.flags.writeable = False
@@ -668,6 +714,36 @@ class MesenGame:
             frames=len(self.inputs)-self.start_frame, start_level=self.start_level,
             fall=t['fall'], das=t['das'], soft=t['soft'],
             soft_points=t['soft_points'], previous=t['previous'], pending=0, over=self.over)
+
+    def _observe_shown(self):
+        """Delay mode: the frame on screen (previous poll's RAM) plus the predicted present piece."""
+        r = self._shown if self._shown is not None else self._ram
+        board = (r[0x400:0x4C8].reshape(20, 10) != 0xEF).copy()
+        board.flags.writeable = False
+        t = self._tracker.values() if self._tracker is not None else dict(fall=0, das=0, soft=0, soft_points=0, previous=0)
+        shown = _classify_preview(self._request.get('preview'))   # the picture of frame r
+        if shown < 0:
+            shown = -1
+        phase, x, y, orientation = int(r[0x68]), int(r[0x60]), int(r[0x61]), int(r[0x62])
+        level = int(r[0x64])
+        fresh = phase == 1 and x == 5 and y == 0 and t['fall'] == 0
+        if phase == 1 and self._tracker is not None and self._shown is not None:
+            bits = game_bits(self._last_buttons)
+            c = Control(x, y, orientation, t['fall'], t['das'], t['soft'], t['soft_points'], t['previous'])
+            n, failed = control_frame(board, c, bits & 0xC7, level)
+            if failed:
+                phase = 2    # the piece locked on the frame just played; the board updates on screen next
+            else:
+                x, y, orientation = n.x, n.y, n.orientation
+                t = dict(fall=n.fall, das=n.das, soft=n.soft, soft_points=n.soft_points, previous=bits)
+                self._predicted = (x, y, orientation)
+        return MesenObservation(board=board, x=x, y=y, orientation=orientation, next_orientation=shown,
+            phase=phase, level=level, lines=bcd(r[0x70:0x71])+100*int(r[0x71]),
+            score=bcd(r[0x73:0x76]), placements=self._shown_placements,
+            frames=len(self.inputs)-self.start_frame, start_level=self.start_level,
+            fall=t['fall'], das=t['das'], soft=t['soft'],
+            soft_points=t['soft_points'], previous=t['previous'], pending=0, over=int(r[0x68]) == 10,
+            fresh_spawn=fresh)
 
     def _capture(self):
         self._capture_id += 1
