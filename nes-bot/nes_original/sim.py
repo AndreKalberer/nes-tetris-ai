@@ -1125,8 +1125,8 @@ class TunedSelector:
         from nes_original.progression import after_clear
         raw = getattr(observation,'next_orientation',None)
         if raw is None:
-            next_orientation = spawn[observation.next_piece]
-        elif 0<=raw<19:
+            raw = -1 if observation.next_piece<0 else spawn[observation.next_piece]
+        if 0<=raw<19:
             next_orientation = spawn[TYPE[raw]]
         else:
             return values  # Preview not readable this frame: one-ply values only.

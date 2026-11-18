@@ -34,7 +34,8 @@ def proposals(observation, rules=ActionRules(), *, board_input=False):
     if failed:
         # The in-flight input already locks the piece; no proposal can change it.
         return None
-    projected = Observation(o.board,state,TYPE[o.next_orientation],Phase.ACTIVE,
+    # next_orientation -1 = box not readable: plan without it (the selector falls back to one-ply values).
+    projected = Observation(o.board,state,TYPE[o.next_orientation] if o.next_orientation >= 0 else -1,Phase.ACTIVE,
         o.level,o.lines,o.score,o.placements,o.frames+pipeline,o.start_level)
     actions = enumerate_actions(projected,rules,board_input=board_input)
     paths = tuple(tuple(from_game_bits(button) for button in path) + ((0,) if pipeline else ())

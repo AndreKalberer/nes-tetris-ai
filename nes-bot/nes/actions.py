@@ -16,9 +16,12 @@ class ActionRules:
     navigation_frames: int=48
     rotation_period: int=4
     horizontal_period: int=0  # 0=held DAS; >=2=press/release pulse period.
+    # Frames of this button schedule already played before planning (a plan made after the
+    # first input continues the same schedule instead of restarting it).
+    start_frame: int=0
 
     def __post_init__(self):
-        if self.reaction_frames<0 or self.navigation_frames<1 or self.rotation_period<2:
+        if self.reaction_frames<0 or self.navigation_frames<1 or self.rotation_period<2 or self.start_frame<0:
             raise ValueError('Invalid timed action profile')
         if self.horizontal_period and self.horizontal_period<2:
             raise ValueError('Horizontal pulse period must be zero or at least two')
@@ -118,7 +121,7 @@ def _timed_paths_python(observation,rules,piece):
             state=observation.control
             path=[]
             for frame in range(rules.reaction_frames+rules.navigation_frames+160):
-                elapsed=frame-rules.reaction_frames
+                elapsed=frame-rules.reaction_frames+rules.start_frame
                 if elapsed<0:
                     buttons=0
                 elif elapsed>=rules.navigation_frames:
@@ -170,7 +173,8 @@ def enumerate_actions(observation,rules=ActionRules(),*,board_input=False):
     after=structural(boards)
     before=structural(board[None])[0]
     preview=np.zeros(7,dtype=np.float32)
-    preview[observation.next_piece]=1
+    if observation.next_piece>=0:   # -1 = NEXT box not readable: no preview feature
+        preview[observation.next_piece]=1
     # Context is exclusively visible. The newly drawn preview after this action
     # is unknown and never simulated or read from a randomizer.
     extras=np.asarray([[observation.level/29,gravity_frames(observation.level)/48,

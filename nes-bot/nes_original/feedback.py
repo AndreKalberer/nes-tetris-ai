@@ -6,6 +6,7 @@ Target misses and prediction differences are data, never simulated transitions.
 """
 import os
 import time
+from dataclasses import replace
 
 import numpy as np
 
@@ -18,6 +19,10 @@ from nes_original.planner import proposals
 
 # Research: NES_PLAN_LOG=path appends 'level height ms' per first plan of a piece.
 _PLAN_LOG = open(os.environ['NES_PLAN_LOG'],'a',buffering=1) if os.environ.get('NES_PLAN_LOG') else None
+
+PREVIEW_WAIT_LIMIT = 12   # frames to wait for the NEXT box picture before planning without it
+PREVIEW_RETRY_LIMIT = 3   # the same, once the box has proved unreadable (covers a 2-frame Select hide)
+
 
 class ControllerObservationError(ObservationFault):
     """Public observation cannot satisfy this controller's pose contract.
@@ -43,7 +48,21 @@ class FeedbackController:
             first_frame = os.environ.get('NES_FIRST_FRAME') == '1'
         self.first_frame = first_frame
         self.expected_spawn = None
+        self._preview_wait = 0
+        self._preview_only_wait = False
+        self._preview_gave_up = False
+        self.preview_giveups = 0
+        self._last_valid_next = None
         self.first_frame_spawns = 0
+        # Blind first input (NES_BLIND_FIRST=1, needs first_frame): on the spawn frame the NEXT
+        # picture still shows the old piece, so plan one-ply from what is visible, play that plan's
+        # first input, and replan with the next piece as soon as its picture is drawn, continuing
+        # the same button schedule.
+        import os as _os_blind
+        self.blind_first = self.first_frame and _os_blind.environ.get('NES_BLIND_FIRST') == '1'
+        self._blind_now = False
+        self.blind_replan = False
+        self.blind_starts = self.blind_replans = self.blind_unresolved = 0
         # Neutral frames after the first stable active frame before the first input. Planning
         # time beyond max(1, reaction_frames) frames is charged as idle frames (one frame is the
         # normal observe-then-input step).
@@ -114,6 +133,8 @@ class FeedbackController:
         self.planning_seconds = 0.0
         self.late_check = False
         self.late_checks = self.late_replans = 0
+        self.miss_log = []   # first 200 target misses with what happened to that piece
+        self._trace = []
         self._invalid_pose_key = self._invalid_pose_frame = None
         self._observation_wait_orientation = None
 
@@ -125,10 +146,12 @@ class FeedbackController:
     def start_plan(self,obs,plan,selected):
         if self.stage:
             raise RuntimeError('Cannot replace an in-progress target action')
+        self.blind_replan = False
         self.plan,self.selected = plan,selected
         target = plan.actions.controls[selected] if plan else obs
         self.target_x,self.target_orientation = target.x,target.orientation
         self.before = obs
+        self._trace.append(('plan',int(obs.x),int(obs.y),int(obs.orientation),int(target.x),int(target.orientation)))
         self.elapsed = self.horizontal = 0
         self.dropping = plan is None
         self.stage = 'active'
@@ -205,6 +228,7 @@ class FeedbackController:
                     if self.late_plan in ('keep', 'retarget'):
                         # This frame plus idle frames: the planning time past the first frame.
                         self.start_plan(obs,plan,selected)
+                        self._mark_blind()
                         self.idle = max(0,int(np.ceil(elapsed*FPS))-2)
                         self.extra_idle_frames += 1
                         self.late_check = self.late_plan == 'retarget' and plan is not None
@@ -213,11 +237,47 @@ class FeedbackController:
                     self.extra_idle_frames += 1
                     return 0
             self.start_plan(obs,plan,selected)
+            self._mark_blind()
+        elif self.blind_replan and self.stage == 'active':
+            # The plan so far was made without the next piece. Once its picture is drawn, plan
+            # again from the current pose with the schedule continuing where it is.
+            if self._valid_orientation(getattr(obs,'next_orientation',None)):
+                self.blind_replan = self.late_check = False
+                self.blind_replans += 1
+                start = time.perf_counter()
+                rules = replace(self.rules,start_frame=self.elapsed)
+                fresh = proposals(obs,rules,board_input=True)
+                if fresh is not None:
+                    selected = self._select(obs,fresh)
+                    self.plan,self.selected = fresh,selected
+                    # The blind plan may have aimed at the spawn pose and started dropping; the new
+                    # target has to be navigated to (dropping on would land the piece at spawn).
+                    self.dropping = False
+                    target = fresh.actions.controls[selected]
+                    self.target_x,self.target_orientation = target.x,target.orientation
+                    self.before = obs
+                    self._trace.append(('replan',self.elapsed,bool(self.dropping),int(obs.x),int(obs.y),
+                                        int(obs.orientation),int(target.x),int(target.orientation)))
+                elapsed = time.perf_counter()-start
+                self.plans += 1
+                self.planning_seconds += elapsed
+                if elapsed > 1/FPS and not self.fixed_reaction:
+                    # Late like any over-budget plan: idle, then check the board is still reachable.
+                    self.overruns += 1
+                    self.idle = max(0,int(np.ceil(elapsed*FPS))-2)
+                    self.extra_idle_frames += 1
+                    self.late_check = self.late_plan == 'retarget' and fresh is not None
+                    self._trace.append(('replan_overrun',self.idle))
+                    return 0
+            elif self.elapsed >= PREVIEW_WAIT_LIMIT:
+                self.blind_replan = False   # picture never came: finish the one-ply plan
+                self.blind_unresolved += 1
         elif self.late_check and self.stage == 'active':
             # First input frame of a late plan: the piece has fallen meanwhile. Keep the chosen
             # board if the current pose still reaches it, else choose again from here.
             self.late_check = False
             self.late_checks += 1
+            self._trace.append(('late',int(obs.x),int(obs.y),int(obs.orientation)))
             start = time.perf_counter()
             target = self.plan.actions.boards[self.selected] != 0
             fresh = proposals(obs,self.rules,board_input=True)
@@ -267,6 +327,12 @@ class FeedbackController:
             return self._drop_button(obs)
         return self.horizontal|rotation
 
+    def _mark_blind(self):
+        if self._blind_now:
+            self._blind_now = False
+            self.blind_replan = True
+            self.blind_starts += 1
+
     @staticmethod
     def _valid_orientation(value):
         return (isinstance(value, (int, np.integer)) and not isinstance(value, (bool, np.bool_))
@@ -276,11 +342,35 @@ class FeedbackController:
         # Guard only indices actually used by TYPE/CELLS/proposal enumeration.
         # No extra XY, geometry, RAM, CPU, or crash heuristics are introduced.
         orientation = getattr(obs, 'orientation', None)
+        self._preview_only_wait = False
         invalid = []
         if not self._valid_orientation(orientation):
             invalid.append(('orientation', repr(orientation)))
         if preview:
             next_orientation = getattr(obs, 'next_orientation', None)
+            if (isinstance(next_orientation, (int, np.integer)) and not isinstance(next_orientation, bool)
+                    and int(next_orientation) == -1 and not invalid):
+                # The NEXT box is blank or still showing the old picture: wait for it, as a
+                # player would (pose is fine, so no stability re-check: 1 frame cost only).
+                if self.blind_first and self._preview_wait == 0 and not self._preview_gave_up:
+                    self._blind_now = True   # spawn frame: plan without the next piece now
+                    return True
+                self._preview_wait += 1
+                limit = (PREVIEW_RETRY_LIMIT if self._preview_gave_up else PREVIEW_WAIT_LIMIT)
+                if self._preview_wait <= limit:
+                    self._preview_only_wait = True
+                    return False
+                # Still nothing drawn (e.g. a glitched late-level palette makes the blocks
+                # black): a player would play without the next piece. Plan one-ply, and on
+                # later pieces wait only briefly before doing the same.
+                self._preview_gave_up = True
+                self.preview_giveups += 1
+                return True
+            self._preview_wait = 0
+            self._blind_now = False
+            if self._valid_orientation(next_orientation):
+                self._last_valid_next = int(next_orientation)
+                self._preview_gave_up = False
             if not self._valid_orientation(next_orientation):
                 invalid.append(('next_orientation', repr(next_orientation)))
         if not invalid:
@@ -297,6 +387,8 @@ class FeedbackController:
         return False
 
     def _wait_for_observation(self):
+        if self._preview_only_wait:
+            return   # only the NEXT picture is pending; keep the stage so the next frame can plan
         if self.stage is None:
             # There is no preceding plan to audit; still prevent evaluate from
             # treating this invalid active flag as a settled target boundary.
@@ -383,9 +475,19 @@ class FeedbackController:
             if after.phase != 2:
                 raise AssertionError('Original game left active control without lock phase')
             self.stage = 'entry'
-            self.expected_spawn = before.next_orientation
+            self.expected_spawn = (before.next_orientation if before.next_orientation >= 0
+                                   else self._last_valid_next)
             if (after.x,after.orientation) != (self.target_x,self.target_orientation):
                 self.target_misses += 1
+                if len(self.miss_log) < 200:
+                    self.miss_log.append(dict(level=int(after.level),placements=int(after.placements),
+                        landed=(int(after.x),int(after.orientation)),target=(int(self.target_x),int(self.target_orientation)),
+                        elapsed=self.elapsed,dropping=bool(self.dropping),trace=list(self._trace)))
+                    if os.environ.get('NES_MISS_LOG'):
+                        import json
+                        with open(os.environ['NES_MISS_LOG'],'a') as f:
+                            f.write(json.dumps(self.miss_log[-1])+'\n')
+            self._trace = []
             if not self._valid_orientation(after.orientation):
                 raise ControllerObservationError('Invalid locked orientation: '+repr(after.orientation))
             self.above_board = any(after.y+dy<0 for dx,dy in CELLS[after.orientation])
@@ -437,7 +539,9 @@ class FeedbackController:
             piece_type_differences=self.piece_type_differences,
             action_interface='Native feedback targets; approximate proposal features',
             reaction_frames=self.reaction_frames,late_plan=self.late_plan,
-            late_checks=self.late_checks,late_replans=self.late_replans,hide_box=self.hide_box,hide_presses=self.hide_presses,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
+            late_checks=self.late_checks,late_replans=self.late_replans,
+            preview_giveups=self.preview_giveups,blind_first=self.blind_first,blind_starts=self.blind_starts,
+            blind_replans=self.blind_replans,blind_unresolved=self.blind_unresolved,miss_log=self.miss_log,hide_box=self.hide_box,hide_presses=self.hide_presses,navigation_frames=48,horizontal_change_period=6 if not self.tap_period else 1,
             horizontal_pulse_period=self.tap_period,rotation_period=4,
             no_softdrop_at_1g=self.no_softdrop_at_1g,
             no_softdrop_levels=sorted(self.no_softdrop_levels),

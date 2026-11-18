@@ -12,6 +12,7 @@ import multiprocessing
 import os
 from pathlib import Path
 import time
+import traceback
 
 
 def limit_cpu(mask):
@@ -29,7 +30,7 @@ def limit_cpu(mask):
         os.nice(10)
 
 
-def verify_group(paths,mask,mesen,session_root):
+def verify_group(paths,mask,mesen,session_root,goal_level=None):
     limit_cpu(mask)
     from nes_original.env import OriginalGame
     rows=[]
@@ -46,17 +47,24 @@ def verify_group(paths,mask,mesen,session_root):
                 game=OriginalGame()
             backend=type(game).__name__
             with game:
-                game.load_replay(record)
+                # load_replay rebuilds the boot, start frame and result from the inputs and
+                # compares them with the record; it never trusts the file's claimed start.
+                final=game.load_replay(record)
+                # The goal is enforced by the caller and checked on the REPLAYED state,
+                # never read from the proof file.
+                if goal_level is not None and not final.level>=goal_level:
+                    raise ValueError(f'Goal not reached in replay: level {final.level} < required {goal_level}')
             row=dict(index=index,path=path,verified=True,error=None,backend=backend,
                 result=record['result'])
         except Exception as error:
-            row=dict(index=index,path=path,verified=False,error=repr(error),backend=backend)
+            row=dict(index=index,path=path,verified=False,error=repr(error),backend=backend,
+                traceback=traceback.format_exc())
         row.update(wall_seconds=time.perf_counter()-started,pid=os.getpid(),cpu_mask=mask)
         rows.append(row)
     return rows
 
 
-def verify_many(paths, *, workers=2,masks=(1,256),mesen=None,session_root=None):
+def verify_many(paths, *, workers=2,masks=(1,256),mesen=None,session_root=None,goal_level=None):
     paths=[str(Path(path).resolve()) for path in paths]
     if not paths or not 1<=workers<=4 or len(masks)<workers:
         raise ValueError('Pass proofs and1..4workers, each with an explicit CPU mask')
@@ -67,7 +75,7 @@ def verify_many(paths, *, workers=2,masks=(1,256),mesen=None,session_root=None):
     groups=[list(enumerate(paths))[i::workers] for i in range(workers)]
     rows=[]
     with ProcessPoolExecutor(max_workers=workers,mp_context=multiprocessing.get_context('spawn')) as pool:
-        jobs=[pool.submit(verify_group,group,mask,str(Path(mesen).resolve()) if mesen else None,session_root)
+        jobs=[pool.submit(verify_group,group,mask,str(Path(mesen).resolve()) if mesen else None,session_root,goal_level)
               for group,mask in zip(groups,selected) if group]
         for job in jobs: rows.extend(job.result())
     return dict(workers=workers,wall_seconds=time.perf_counter()-started,
@@ -80,6 +88,7 @@ def main():
     p.add_argument('--workers',type=int,default=2)
     p.add_argument('--cpu-masks',type=lambda value:int(value,0),nargs='+',default=[1,256])
     p.add_argument('--mesen',type=Path)
+    p.add_argument('--goal-level',type=int,help='Require the replayed game to reach this level (enforced here, not read from the proof)')
     p.add_argument('--benchmark',action='store_true',help='Compare serial and parallel verification of the same proofs')
     p.add_argument('--output',type=Path,required=True)
     args=p.parse_args()
@@ -87,7 +96,7 @@ def main():
     if not all(path.is_file() for path in args.proofs): p.error('All proof paths must exist')
     args.output.parent.mkdir(parents=True,exist_ok=True)
     options=dict(masks=args.cpu_masks,mesen=args.mesen,
-        session_root=str(args.output.parent/'reference-verification-sessions'))
+        session_root=str(args.output.parent/'reference-verification-sessions'),goal_level=args.goal_level)
     result=dict(scope='Verification throughput only; not a playing-strength or live-training speed claim')
     if args.benchmark:
         result['serial']=verify_many(args.proofs,workers=1,**options)

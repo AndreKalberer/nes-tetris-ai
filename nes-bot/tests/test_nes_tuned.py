@@ -103,6 +103,16 @@ class FastSimulatorTest(unittest.TestCase):
         selector(observation,plan)  # latched after the switch
         self.assertEqual(selector.modes['survive'],2)
 
+    def test_unreadable_next_plans_one_ply(self):
+        # next_piece -1 (NEXT box not readable) must not be read as SPAWN[-1] (an I piece).
+        from dataclasses import replace
+        for observation,actions in active_states(seeds=(4,),steps=8):
+            plan = SimpleNamespace(actions=actions)
+            blind = replace(observation,next_piece=-1)
+            one_ply = sim.TunedSelector(sim.DELLACHERIE,sim.DELLACHERIE,well=-1,well_survive=-1,beam=0)
+            beam = sim.TunedSelector(sim.DELLACHERIE,sim.DELLACHERIE,well=-1,well_survive=-1,beam=3)
+            self.assertEqual(beam(blind,plan),one_ply(blind,plan))
+
     def test_zone_weights_apply_only_in_their_levels(self):
         selector = sim.TunedSelector(sim.DELLACHERIE,sim.DELLACHERIE,well=-1,well_survive=-1,
             zones=[(156,158,sim.SCORE_START,9)])

@@ -22,6 +22,8 @@ import uuid
 import numpy as np
 
 from nes_original.env import Buttons, GAMEPLAY_MASK, Observation, ROM_SHA256, bcd, bundled_rom
+from nes_original.preview import classify as _classify_preview
+from nes_original.timers import TimerTracker
 
 PROTOCOL = 'original-ntsc-a-mesence-input-replay-v1'
 PROFILE = ('--nes.region=Ntsc', '--nes.rampoweronstate=AllZeros',
@@ -347,6 +349,9 @@ class MesenGame:
         self._ram = None
         self._capture_id = 0
         self._nmi_stalled = self._semantic_stalled = 0
+        self._active_age = 0
+        self._tracker = None
+        self._unknown_previews = 0
 
     def _publish(self, text):
         self._idle_deadline = time.monotonic()+self.action_timeout
@@ -478,6 +483,14 @@ class MesenGame:
         self._publish(f'{sequence} action {int(buttons)}')
         self._wait_request(sequence)
         self.inputs.append(int(buttons))
+        if self._tracker is not None:
+            # Timers are rebuilt from our own inputs and the visible board/piece/level only.
+            self._tracker.step(dict(active=int(before[0x68]) == 1,
+                board=(before[0x400:0x4C8].reshape(20, 10) != 0xEF), x=int(before[0x60]),
+                y=int(before[0x61]), orientation=int(before[0x62]), level=int(before[0x64])),
+                int(buttons), int(self._ram[0x68]))
+        # Frames the active piece has been on screen (a player sees it appear and counts).
+        self._active_age = self._active_age+1 if int(self._ram[0x68]) == 1 and int(before[0x68]) == 1 else 0
         if self.started:
             if int(before[0x68]) == 2 and int(self._ram[0x68]) == 3:
                 self.placements += 1
@@ -572,6 +585,8 @@ class MesenGame:
         self.inputs = bytearray()
         self.placements = self.start_frame = 0
         self._nmi_stalled = self._semantic_stalled = 0
+        self._active_age = 0
+        self._tracker = None
         self.stall_events = []
         self.start_level, self.seed = start_level, seed
         self._launch()
@@ -605,7 +620,10 @@ class MesenGame:
             raise MesenFault('Original-game starting level does not match')
         self.started = True
         self.start_frame = len(self.inputs)
+        self._active_age = 0
+        self._tracker = None
         self._step_raw(0)
+        self._tracker = TimerTracker()   # state of the ROM timers at the first active frame
         return self.observe()
 
     @property
@@ -629,13 +647,27 @@ class MesenGame:
         r = self._ram
         board = (r[0x400:0x4C8].reshape(20, 10) != 0xEF).copy()
         board.flags.writeable = False
+        # NEXT comes from the drawn picture, never from RAM $BF. -1 = not (yet) readable:
+        # the box is blank, or the piece appeared this very frame and the picture is
+        # still the previous preview.
+        t = self._tracker.values() if self._tracker is not None else dict(fall=0, das=0, soft=0, soft_points=0, previous=0)
+        shown = _classify_preview(self._request.get('preview'))
+        if shown == -2 and self._unknown_previews < 20:
+            # Diagnostics only (never fed to the policy): keep the unreadable picture for review.
+            self._unknown_previews += 1
+            bits = self._request.get('preview') or ''
+            art = '\n'.join(bits[k*32:(k+1)*32].replace('0', '.').replace('1', '#') for k in range(32))
+            with (self.session_dir / 'preview-unknown.log').open('a', encoding='utf-8') as log:
+                log.write(f'frame {len(self.inputs)} level {int(r[0x64])} phase {int(r[0x68])}\n{art}\n\n')
+        if shown < 0 or (int(r[0x68]) == 1 and self._active_age < 1):
+            shown = -1
         return MesenObservation(board=board, x=int(r[0x60]), y=int(r[0x61]),
-            orientation=int(r[0x62]), next_orientation=int(r[0xBF]), phase=int(r[0x68]),
+            orientation=int(r[0x62]), next_orientation=shown, phase=int(r[0x68]),
             level=int(r[0x64]), lines=bcd(r[0x70:0x71])+100*int(r[0x71]),
             score=bcd(r[0x73:0x76]), placements=self.placements,
             frames=len(self.inputs)-self.start_frame, start_level=self.start_level,
-            fall=int(r[0x65]), das=int(r[0x66]), soft=int(r[0x6E]),
-            soft_points=int(r[0x6F]), previous=int(r[0xB6]), pending=0, over=self.over)
+            fall=t['fall'], das=t['das'], soft=t['soft'],
+            soft_points=t['soft_points'], previous=t['previous'], pending=0, over=self.over)
 
     def _capture(self):
         self._capture_id += 1
