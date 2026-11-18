@@ -31,7 +31,7 @@ from nes.engine import Control, control_frame
 # from the previous poll's RAM. The current frame of the falling piece is then predicted from that state plus
 # the bot's own last button press, with the ROM's frame rules (nes.engine.control_frame), as a player knows
 # what they just pressed. Nothing newer than the picture reaches the policy.
-PICTURE_DELAY = os.environ.get('NES_PICTURE_DELAY', '0') == '1'
+PICTURE_DELAY = os.environ.get('NES_PICTURE_DELAY', '1') != '0'   # on by default (fair-play rule 2)
 
 PROTOCOL = 'original-ntsc-a-mesence-input-replay-v1'
 PROFILE = ('--nes.region=Ntsc', '--nes.rampoweronstate=AllZeros',

@@ -53,7 +53,7 @@ but 97 pieces (1.2%) landed off target: when the blind plan kept the spawn pose 
 frame 0 and kept dropping after the replan chose another spot. Fixed (the replan clears the drop flag;
 `test_blind_spawn_pose_then_move_still_lands_on_target`). `NES_MISS_LOG=path` writes each target miss as it happens.
 
-## One-frame delay (NES_PICTURE_DELAY=1, on in run-score-nextbox.sh)
+## One-frame delay (NES_PICTURE_DELAY, on by default; set 0 only for diagnostics)
 
 Audit 2 measured that the picture shows exactly what RAM held one frame earlier (2,877/2,877 active frames). Andre
 chose option (b): observations are built from the previous poll's RAM (the frame on screen), and the falling
