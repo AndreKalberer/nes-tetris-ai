@@ -471,6 +471,13 @@ class FeedbackController:
             else:
                 self._observation_wait_orientation = None
             return
+        if (self.stage == 'active' and getattr(before, 'spawn_predicted', False) and before.phase == 1
+                and after.phase not in (1, 2)):
+            # The predicted spawn did not happen (the piece is not on screen): drop that plan, wait for it.
+            self.stage = 'entry'
+            self.blind_replan = False
+            self.spawn_mispredicts = getattr(self, 'spawn_mispredicts', 0)+1
+            return
         if self.stage == 'active' and before.phase == 1 and after.phase != 1:
             if after.phase != 2:
                 raise AssertionError('Original game left active control without lock phase')
