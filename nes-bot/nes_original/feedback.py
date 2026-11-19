@@ -477,6 +477,9 @@ class FeedbackController:
             self.stage = 'entry'
             self.blind_replan = False
             self.spawn_mispredicts = getattr(self, 'spawn_mispredicts', 0)+1
+            if os.environ.get('NES_SPAWN_LOG'):
+                with open(os.environ['NES_SPAWN_LOG'], 'a') as log:
+                    log.write('mispredict level=%d placements=%d\n' % (int(after.level), int(after.placements)))
             return
         if self.stage == 'active' and before.phase == 1 and after.phase != 1:
             if after.phase != 2:
