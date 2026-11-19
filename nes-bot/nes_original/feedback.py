@@ -497,8 +497,9 @@ class FeedbackController:
             # consecutive matching active orientations before the next choice.
             self.spawn_orientation = after.orientation
             self.stage = 'settle'
-            fresh = (after.orientation == self.expected_spawn and after.x == 5 and after.y == 0
-                     and after.fall == 0)
+            seen = getattr(after, 'fresh_spawn', None)   # delay mode: judged on the frame on screen
+            fresh = after.orientation == self.expected_spawn and (
+                bool(seen) if seen is not None else (after.x == 5 and after.y == 0 and after.fall == 0))
             if not (self.first_frame and fresh):
                 return
             self.first_frame_spawns += 1

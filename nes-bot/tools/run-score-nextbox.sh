@@ -1,8 +1,8 @@
 #!/bin/sh
 # Play one original-game attempt with Orcacle, the current score bot, in MesenCE, then fresh-replay verify it.
 # The bot: tetris mode with a 9-row stack (6 rows at 151-158, 8 at 240-255) at levels 18-167, 174-248, 250-252 and 254;
-# 2-piece playouts with value net v8b at levels 18-153 and 176-243; first input on the spawn frame from the
-# visible piece only, then a replan once the NEXT box is drawn (NES_BLIND_FIRST=1, docs/LEGITIMACY.md); no risky
+# 2-piece playouts with value net v8b at levels 18-153 and 176-243; bot sees only RAM that matches
+# the picture (NES_PICTURE_DELAY=1), first input 1 frame after spawn (docs/LEGITIMACY.md); no risky
 # crash-zone clears below a 14-row stack; Dellacherie safe play at 168-173, 249, 253 and 255; and Select hides the
 # next-piece box before clears the crash model rates safer that way (NES_HIDE_BOX=1).  Usage:
 #   sh nes-bot/tools/run-score-nextbox.sh SEED [TARGET] [PLANNER_MASK EMULATOR_MASK]  (planner wants 3 cores: default 13 = cores 0,2,3)
@@ -26,11 +26,12 @@ else GOAL="--target-level $TARGET --max-frames 4000000 --process-timeout 43200";
 OUT="$ROOT/runs/run-score-nextbox"; mkdir -p "$OUT"
 cd "$ROOT"
 export PYTHONPATH="$NES"
-# The NEXT box is read from the drawn picture, which appears 1 frame after the piece does (2 after a Select hide).
-# Waiting for it cost a lot of survival at 1G (5-lap sim: 13/31 deaths vs 2/31), so NES_BLIND_FIRST=1 plays the
-# spawn-frame input from a one-ply plan without NEXT and replans once NEXT is drawn, continuing the same button
-# schedule. The first input is on the spawn frame again, so projections use NES_SPAWN_SETTLE=0 (docs/LEGITIMACY.md).
-export NES_HIDE_BOX=1 NES_FIRST_FRAME=1 NES_BLIND_FIRST=${NES_BLIND_FIRST:-1} NES_SPAWN_SETTLE=${NES_SPAWN_SETTLE:-0}
+# NES_PICTURE_DELAY=1 (Andre 2026-11-18): the bot only sees RAM that matches the picture on screen (one frame
+# behind) and predicts the falling piece's current frame from its own last input. A new piece is therefore seen
+# one frame after it spawns, so the first input comes 1 frame after spawn: projections use NES_SPAWN_SETTLE=1
+# (5-lap sim: 13/31 deaths vs 5/31 for the spawn-frame move; docs/LEGITIMACY.md). NES_BLIND_FIRST=1 now only
+# matters when the NEXT box is still hidden after a Select show.
+export NES_HIDE_BOX=1 NES_FIRST_FRAME=1 NES_PICTURE_DELAY=${NES_PICTURE_DELAY:-1} NES_BLIND_FIRST=${NES_BLIND_FIRST:-1} NES_SPAWN_SETTLE=${NES_SPAWN_SETTLE:-1}
 export NES_RISK_BUDGET=17:.9,14:.5  # no risky crash-zone clears below a 14-row stack (fixes level-157 deaths)
 # numba bakes NES_SPAWN_SETTLE into its cache, so keep this bot's cache apart from the others.
 export NUMBA_CACHE_DIR=${NUMBA_CACHE_DIR:-"$ROOT/.numba-cache/settle$NES_SPAWN_SETTLE"}
