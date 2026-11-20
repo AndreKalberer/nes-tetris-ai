@@ -23,6 +23,7 @@ import numpy as np
 
 from nes_original.env import Buttons, GAMEPLAY_MASK, Observation, ROM_SHA256, bcd, bundled_rom
 from nes_original.preview import classify as _classify_preview
+from nes_original.spawn_predict import SpawnPredictor
 from nes_original.timers import TimerTracker, game_bits
 from nes.engine import Control, control_frame
 
@@ -32,6 +33,12 @@ from nes.engine import Control, control_frame
 # the bot's own last button press, with the ROM's frame rules (nes.engine.control_frame), as a player knows
 # what they just pressed. Nothing newer than the picture reaches the policy.
 PICTURE_DELAY = os.environ.get('NES_PICTURE_DELAY', '1') != '0'   # on by default (fair-play rule 2)
+
+# NES_SPAWN_PREDICT=1 (Andre 2026-11-19): with the delay the first input would come one frame after the piece
+# spawns. The spawn frame is predictable from the frame on screen (the ROM's lock/clear/score/spawn phases are fixed,
+# see spawn_predict.py), so on the last non-active frame the observation is the predicted spawn pose. Condition from
+# Andre: the piece type comes ONLY from the NEXT-box picture the bot already saw, never from RAM before it is on screen.
+SPAWN_PREDICT = os.environ.get('NES_SPAWN_PREDICT', '1') != '0'
 
 PROTOCOL = 'original-ntsc-a-mesence-input-replay-v1'
 PROFILE = ('--nes.region=Ntsc', '--nes.rampoweronstate=AllZeros',
@@ -54,6 +61,9 @@ class MesenObservation(Observation):
     # Delay mode: the frame on screen is a clean spawn (x 5, y 0, fall 0), so the predicted present
     # (one frame later) is the piece's first frame of control. None = judge the observation itself.
     fresh_spawn: object = None
+    # Delay mode + NES_SPAWN_PREDICT: this observation is a predicted spawn (the piece is not on screen yet);
+    # the piece type is the one the NEXT-box picture showed.
+    spawn_predicted: bool = False
 
 
 class _WindowsPipes:
@@ -370,6 +380,11 @@ class MesenGame:
         self._last_buttons = 0
         self._predicted = None
         self.predictions = self.prediction_misses = 0
+        self.spawn_predict = SPAWN_PREDICT
+        self._spawner = SpawnPredictor()
+        self._seen_next = None        # last NEXT-box picture read (a spawn orientation id), picture only
+        self._spawn_next = False
+        self.spawn_predictions = 0
 
     def _publish(self, text):
         self._idle_deadline = time.monotonic()+self.action_timeout
@@ -518,6 +533,8 @@ class MesenGame:
             if old is not None and int(old[0x68]) == 2 and int(before[0x68]) == 3:
                 self._shown_placements += 1
             self._shown, self._last_buttons = before, int(buttons)
+            if getattr(self, 'spawn_predict', False):
+                self._update_spawn(before)
             if self._predicted is not None and int(before[0x68]) == 1:
                 self.predictions += 1
                 got = (int(before[0x60]), int(before[0x61]), int(before[0x62]))
@@ -715,6 +732,19 @@ class MesenGame:
             fall=t['fall'], das=t['das'], soft=t['soft'],
             soft_points=t['soft_points'], previous=t['previous'], pending=0, over=self.over)
 
+    def _update_spawn(self, r):
+        """Once per poll: is the next frame a spawn, and which piece does the NEXT picture say it is?"""
+        phase = int(r[0x68])
+        if phase == 1 and self._spawner.prev_phase != 1:
+            self._seen_next = None        # the picture right after a spawn can still show the old piece
+        else:
+            v = _classify_preview(self._request.get('preview'))
+            if v >= 0:
+                self._seen_next = int(v)
+        board = r[0x400:0x4C8].reshape(20, 10) != 0xEF
+        nxt = self._spawner.update(phase, board, int(r[0x60]), int(r[0x61]), int(r[0x62]), int(r[0x64]))
+        self._spawn_next = bool(nxt and self._seen_next is not None)
+
     def _observe_shown(self):
         """Delay mode: the frame on screen (previous poll's RAM) plus the predicted present piece."""
         r = self._shown if self._shown is not None else self._ram
@@ -727,7 +757,18 @@ class MesenGame:
         phase, x, y, orientation = int(r[0x68]), int(r[0x60]), int(r[0x61]), int(r[0x62])
         level = int(r[0x64])
         fresh = phase == 1 and x == 5 and y == 0 and t['fall'] == 0
-        if phase == 1 and self._tracker is not None and self._shown is not None:
+        spawn_predicted = False
+        if (getattr(self, 'spawn_predict', False) and self._spawn_next and phase != 1
+                and self._tracker is not None):
+            # The next frame spawns a piece. Its type is what the NEXT picture showed (self._seen_next),
+            # never RAM; the NEXT box shows nothing new for it yet, so the observation carries no preview.
+            bits = game_bits(self._last_buttons)
+            phase, x, y, orientation = 1, 5, 0, int(self._seen_next)
+            t = dict(fall=0, das=t['das'], soft=0, soft_points=t['soft_points'], previous=bits)
+            shown, fresh, spawn_predicted = -1, True, True
+            self._predicted = (x, y, orientation)
+            self.spawn_predictions += 1
+        elif phase == 1 and self._tracker is not None and self._shown is not None:
             bits = game_bits(self._last_buttons)
             c = Control(x, y, orientation, t['fall'], t['das'], t['soft'], t['soft_points'], t['previous'])
             n, failed = control_frame(board, c, bits & 0xC7, level)
@@ -743,7 +784,7 @@ class MesenGame:
             frames=len(self.inputs)-self.start_frame, start_level=self.start_level,
             fall=t['fall'], das=t['das'], soft=t['soft'],
             soft_points=t['soft_points'], previous=t['previous'], pending=0, over=int(r[0x68]) == 10,
-            fresh_spawn=fresh)
+            fresh_spawn=fresh, spawn_predicted=spawn_predicted)
 
     def _capture(self):
         self._capture_id += 1

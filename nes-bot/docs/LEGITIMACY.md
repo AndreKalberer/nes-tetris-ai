@@ -62,6 +62,23 @@ piece's current frame is predicted with `nes.engine.control_frame` from that sta
 A new piece is seen one frame after it spawns, so the first input comes 1 frame after spawn, the same as the
 "wait 1 frame" sim arm above (13/31 deaths in 5 laps vs 5/31 for the spawn-frame move). Andre accepted this cost.
 
+## Predicted spawn frame (NES_SPAWN_PREDICT, on by default; Andre 2026-11-19)
+
+With the delay the first input came 1 frame after the piece spawned (13/31 deaths in the 5-lap sim; the spawn-frame
+arm above had 5/31). The spawn frame is predictable from the frame on screen: after a lock the ROM runs fixed phases
+(lock, scan, clear, score, goal, receive, spawn) and `nes_original/spawn_predict.py` replays them with the Python
+engine from the picture's board, the locked piece's pose and the phase byte. On the last non-active frame the
+observation is the predicted spawn pose (x 5, y 0, fall 0), the blind one-ply plan runs, and the plan is redone once
+the NEXT picture is drawn (same path as `NES_BLIND_FIRST`).
+
+**Andre's condition (2026-11-19): the bot never reads the piece from memory before it is on screen.** The type of a
+predicted spawn comes only from the NEXT-box picture the bot already saw (`MesenGame._seen_next`, set only from
+`preview.classify` of the drawn box and cleared on every spawn). If no valid picture was read for the piece, no
+prediction is made and the bot falls back to the 1-frame-late input. Tests: `tests/test_spawn_predict.py`
+(the picture says one piece while the game's RAM spawns another: the observation follows the picture; the branch
+contains no RAM index; the predicted frame matches the real spawn frame on engine games at levels 19-200).
+`NES_SPAWN_PREDICT=0` turns it off. Results need a fresh replay-verified real game.
+
 ## Still open (not fixed here, do not overstate)
 
 - The older nes-py path (`nes_original/env.py`, `OriginalGame`) still reads `$BF` and the timers from RAM. It is a development/simulation backend, not the Mesen gameplay path; do not use it for legitimacy claims.

@@ -31,6 +31,7 @@ export PYTHONPATH="$NES"
 # one frame after it spawns, so the first input comes 1 frame after spawn: projections use NES_SPAWN_SETTLE=1
 # (5-lap sim: 13/31 deaths vs 5/31 for the spawn-frame move; docs/LEGITIMACY.md). NES_BLIND_FIRST=1 now only
 # matters when the NEXT box is still hidden after a Select show.
+export NES_SPAWN_PREDICT=${NES_SPAWN_PREDICT:-1}
 export NES_HIDE_BOX=1 NES_FIRST_FRAME=1 NES_PICTURE_DELAY=${NES_PICTURE_DELAY:-1} NES_BLIND_FIRST=${NES_BLIND_FIRST:-1} NES_SPAWN_SETTLE=${NES_SPAWN_SETTLE:-1}
 export NES_RISK_BUDGET=17:.9,14:.5  # no risky crash-zone clears below a 14-row stack (fixes level-157 deaths)
 # numba bakes NES_SPAWN_SETTLE into its cache, so keep this bot's cache apart from the others.

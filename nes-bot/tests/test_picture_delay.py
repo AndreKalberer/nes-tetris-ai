@@ -17,6 +17,7 @@ def ram_of(g):
     k = g.control
     r[0x60], r[0x61], r[0x62] = k.x, k.y, k.orientation
     r[0x64], r[0x68], r[0xC0] = g.level % 256, int(g.phase), 4
+    r[0x70], r[0x71] = ((g.lines % 100)//10 << 4) | (g.lines % 10), g.lines // 100
     return r
 
 
